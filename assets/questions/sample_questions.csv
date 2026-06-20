@@ -1,3 +1,0 @@
-id,category,question_text,choice_1,choice_2,choice_3,choice_4,correct_choice_index,explanation,is_premium,year
-sample-anatomy-001,解剖学,上腕骨に存在する部位はどれか。,大転子,結節間溝,粗線,内果,1,結節間溝は上腕骨近位部にある構造です。,false,2026
-sample-physiology-001,生理学,呼吸運動の主な吸気筋はどれか。,横隔膜,腹直筋,内肋間筋,広背筋,0,安静吸気では横隔膜の収縮が中心的な役割を担います。,false,2026

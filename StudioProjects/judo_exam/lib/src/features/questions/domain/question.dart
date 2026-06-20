@@ -1,7 +1,7 @@
 import 'question_category.dart';
 
 class Question {
-  Question({
+  const Question({
     required this.id,
     required this.category,
     required this.questionText,
@@ -10,14 +10,11 @@ class Question {
     required this.explanation,
     required this.isPremium,
     this.year,
-  }) : assert(
-  choices.length == 4,
-  'Question must have exactly four choices',
-  ),
-        assert(
-        correctChoiceIndex >= 0 && correctChoiceIndex < 4,
-        'correctChoiceIndex must be between 0 and 3',
-        );
+  }) : assert(choices.length == 4, 'Question must have exactly four choices'),
+       assert(
+         correctChoiceIndex >= 0 && correctChoiceIndex < 4,
+         'correctChoiceIndex must be between 0 and 3',
+       );
 
   final String id;
   final QuestionCategory category;
@@ -54,28 +51,4 @@ class Question {
     );
   }
 
-  factory Question.fromCsvRecord(List<String> record) {
-    if (record.length < 9) {
-      throw ArgumentError.value(
-        record,
-        'record',
-        'Question CSV requires 9 columns',
-      );
-    }
-
-    return Question(
-      id: record[0],
-      category: QuestionCategory.fromCsvValue(record[1]),
-      questionText: record[2],
-      choices: record.sublist(3, 7),
-      correctChoiceIndex: int.parse(record[7]),
-      explanation: record[8],
-      isPremium:
-      record.length > 9 ? record[9].toLowerCase() == 'true' : true,
-      year:
-      record.length > 10 && record[10].isNotEmpty
-          ? int.parse(record[10])
-          : null,
-    );
   }
-}
