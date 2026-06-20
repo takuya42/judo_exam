@@ -11,7 +11,7 @@ enum QuestionCategory {
 
   final String label;
 
-  static QuestionCategory fromCsvValue(String value) {
+  static QuestionCategory fromSheetValue(String value) {
     return QuestionCategory.values.firstWhere(
       (category) => category.name == value || category.label == value,
       orElse: () => throw ArgumentError.value(value, 'value', 'Unknown category'),

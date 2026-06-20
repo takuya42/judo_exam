@@ -11,7 +11,7 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final colorScheme = Theme.of(context).colorScheme;
-    final freeQuestionCount = ref.watch(freeQuestionCountProvider);
+    final freeQuestionCountAsync = ref.watch(freeQuestionCountProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('柔道整復師国試対策')),
@@ -33,7 +33,12 @@ class HomeScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      '無料問題 $freeQuestionCount 問からスタート。全問題解放は買い切り 1,500 円です。',
+                      freeQuestionCountAsync.when(
+                        data: (count) =>
+                            '無料問題 $count 問からスタート。全問題解放は買い切り 1,500 円です。',
+                        loading: () => 'Google Sheetsから問題数を取得しています...',
+                        error: (_, _) => '問題数を取得できませんでした。問題タブから再試行できます。',
+                      ),
                       style: Theme.of(context).textTheme.bodyLarge,
                     ),
                     const SizedBox(height: 20),

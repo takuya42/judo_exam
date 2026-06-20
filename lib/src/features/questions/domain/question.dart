@@ -51,20 +51,4 @@ class Question {
     );
   }
 
-  factory Question.fromCsvRecord(List<String> record) {
-    if (record.length < 9) {
-      throw ArgumentError.value(record, 'record', 'Question CSV requires 9 columns');
-    }
-
-    return Question(
-      id: record[0],
-      category: QuestionCategory.fromCsvValue(record[1]),
-      questionText: record[2],
-      choices: record.sublist(3, 7),
-      correctChoiceIndex: int.parse(record[7]),
-      explanation: record[8],
-      isPremium: record.length > 9 ? record[9].toLowerCase() == 'true' : true,
-      year: record.length > 10 && record[10].isNotEmpty ? int.parse(record[10]) : null,
-    );
   }
-}
