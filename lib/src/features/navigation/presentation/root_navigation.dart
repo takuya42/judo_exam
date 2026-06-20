@@ -29,7 +29,9 @@ class RootNavigation extends ConsumerWidget {
       body: IndexedStack(index: selectedIndex, children: _screens),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: selectedIndex,
-        onTap: (index) => ref.read(selectedTabIndexProvider.notifier).state = index,
+        onTap: (index) => ref
+            .read(selectedTabIndexProvider.notifier)
+            .select(index),
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'ホーム'),
           BottomNavigationBarItem(icon: Icon(Icons.quiz_outlined), label: '問題'),
