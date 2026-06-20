@@ -21,13 +21,25 @@ class QuestionExamScreen extends ConsumerStatefulWidget {
 class _QuestionExamScreenState extends ConsumerState<QuestionExamScreen> {
   int _currentIndex = 0;
   int? _selectedChoiceIndex;
+  Question? _currentQuestion;
 
-  Question get _currentQuestion => widget.questions[_currentIndex];
+  @override
+  void initState() {
+    super.initState();
+    if (widget.questions.isNotEmpty) {
+      _currentQuestion = _shuffledQuestionAt(_currentIndex);
+    }
+  }
+
+  Question _shuffledQuestionAt(int index) =>
+      widget.questions[index].shuffledChoices();
 
   void _answer(int choiceIndex) {
     if (_selectedChoiceIndex != null) return;
 
     final question = _currentQuestion;
+    if (question == null) return;
+
     setState(() => _selectedChoiceIndex = choiceIndex);
     ref.read(learningDataControllerProvider.notifier).recordAnswer(
           question: question,
@@ -43,6 +55,7 @@ class _QuestionExamScreenState extends ConsumerState<QuestionExamScreen> {
 
     setState(() {
       _currentIndex += 1;
+      _currentQuestion = _shuffledQuestionAt(_currentIndex);
       _selectedChoiceIndex = null;
     });
   }
@@ -57,7 +70,7 @@ class _QuestionExamScreenState extends ConsumerState<QuestionExamScreen> {
       );
     }
 
-    final question = _currentQuestion;
+    final question = _currentQuestion!;
     final selectedChoiceIndex = _selectedChoiceIndex;
     final currentNumber = _currentIndex + 1;
     final totalCount = questions.length;
