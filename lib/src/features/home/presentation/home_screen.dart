@@ -5,6 +5,7 @@ import '../../navigation/application/navigation_provider.dart';
 import '../../questions/application/question_providers.dart';
 import '../../questions/domain/question.dart';
 import '../../questions/domain/question_category.dart';
+import '../../settings/application/settings_providers.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -15,7 +16,7 @@ class HomeScreen extends ConsumerWidget {
     final questionsAsync = ref.watch(questionsProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF7FBF8),
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerLowest,
       appBar: AppBar(
         title: const Text('柔道整復師国試対策'),
         actions: [
@@ -56,13 +57,19 @@ class _HomeContent extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final categoryCounts = _categoryCounts(questions);
     final totalQuestionCount = questions.length;
+    final learningSummary = ref.watch(learningDataControllerProvider);
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
       children: [
         const _HeroCard(),
         const SizedBox(height: 16),
-        _DashboardGrid(totalQuestionCount: totalQuestionCount),
+        _DashboardGrid(
+          totalQuestionCount: totalQuestionCount,
+          learnedQuestionCount: learningSummary.learnedQuestionCount,
+          correctRate: learningSummary.correctRate,
+          correctStreak: learningSummary.correctStreak,
+        ),
         const SizedBox(height: 24),
         _SectionHeader(
           icon: Icons.local_hospital_rounded,
@@ -188,9 +195,17 @@ class _HeroCard extends StatelessWidget {
 }
 
 class _DashboardGrid extends StatelessWidget {
-  const _DashboardGrid({required this.totalQuestionCount});
+  const _DashboardGrid({
+    required this.totalQuestionCount,
+    required this.learnedQuestionCount,
+    required this.correctRate,
+    required this.correctStreak,
+  });
 
   final int totalQuestionCount;
+  final int learnedQuestionCount;
+  final int correctRate;
+  final int correctStreak;
 
   @override
   Widget build(BuildContext context) {
@@ -200,27 +215,27 @@ class _DashboardGrid extends StatelessWidget {
       physics: const NeverScrollableScrollPhysics(),
       mainAxisSpacing: 12,
       crossAxisSpacing: 12,
-      childAspectRatio: 1.45,
+      childAspectRatio: 1.08,
       children: [
         _MetricCard(
           icon: Icons.library_books_rounded,
           label: '総問題数',
-          value: '$totalQuestionCount問',
+          value: '$totalQuestionCount',
         ),
-        const _MetricCard(
+        _MetricCard(
           icon: Icons.fact_check_rounded,
           label: '学習済み問題数',
-          value: '0問',
+          value: '$learnedQuestionCount',
         ),
-        const _MetricCard(
+        _MetricCard(
           icon: Icons.percent_rounded,
           label: '正解率',
-          value: '0%',
+          value: '$correctRate%',
         ),
-        const _MetricCard(
+        _MetricCard(
           icon: Icons.local_fire_department_rounded,
           label: '連続正解数',
-          value: '0問',
+          value: '$correctStreak',
         ),
       ],
     );
@@ -242,24 +257,38 @@ class _MetricCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     return _MedicalCard(
+      padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          _IconBadge(icon: icon),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(label, style: Theme.of(context).textTheme.labelLarge),
-              const SizedBox(height: 4),
-              Text(
-                value,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: colorScheme.primary,
-                  fontWeight: FontWeight.w800,
+          _IconBadge(icon: icon, size: 42),
+          const SizedBox(height: 12),
+          Expanded(
+            child: Center(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  value,
+                  maxLines: 1,
+                  style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                    color: colorScheme.primary,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -1.1,
+                  ),
                 ),
               ),
-            ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w700,
+                ),
           ),
         ],
       ),
@@ -564,9 +593,9 @@ class _MedicalCard extends StatelessWidget {
     return Container(
       padding: padding,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE8F2ED)),
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.55)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.06),

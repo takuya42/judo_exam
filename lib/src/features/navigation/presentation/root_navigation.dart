@@ -6,6 +6,7 @@ import '../../favorites/presentation/favorites_screen.dart';
 import '../../history/presentation/study_history_screen.dart';
 import '../../home/presentation/home_screen.dart';
 import '../../questions/presentation/question_list_screen.dart';
+import '../../settings/presentation/settings_screen.dart';
 import '../application/navigation_provider.dart';
 
 class RootNavigation extends ConsumerWidget {
@@ -17,6 +18,7 @@ class RootNavigation extends ConsumerWidget {
     StudyHistoryScreen(),
     FavoritesScreen(),
     MockExamScreen(),
+    SettingsScreen(),
   ];
 
   @override
@@ -34,6 +36,7 @@ class RootNavigation extends ConsumerWidget {
           BottomNavigationBarItem(icon: Icon(Icons.history_outlined), label: '履歴'),
           BottomNavigationBarItem(icon: Icon(Icons.star_outline), label: 'お気に入り'),
           BottomNavigationBarItem(icon: Icon(Icons.assignment_outlined), label: '模試'),
+          BottomNavigationBarItem(icon: Icon(Icons.settings_outlined), label: '設定'),
         ],
       ),
     );
