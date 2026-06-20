@@ -20,40 +20,34 @@ class GoogleSheetService {
 
   final http.Client _client;
 
-  Uri get _sheetJsonUri => Uri.https(
+  static const List<String> sheetNames = <String>[
+    '解剖学',
+    '生理学',
+    '運動学',
+    '病理学',
+    '一般臨床医学',
+    '外科学',
+    '整形外科学',
+    'リハビリテーション医学',
+    '柔道整復理論',
+    '関係法規',
+  ];
+
+  Uri _sheetJsonUri(String sheetName) => Uri.https(
     'docs.google.com',
     '/spreadsheets/d/$spreadsheetId/gviz/tq',
-    {'tqx': 'out:json'},
+    {'tqx': 'out:json', 'sheet': sheetName},
   );
 
   Future<List<Question>> loadQuestions() async {
     try {
-      final response = await _client.get(_sheetJsonUri);
+      final questions = <Question>[];
 
-      if (response.statusCode != 200) {
-        throw GoogleSheetException(
-          'Google Sheetsから問題を取得できませんでした。'
-          'ステータスコード: ${response.statusCode}',
-        );
+      for (final sheetName in sheetNames) {
+        questions.addAll(await _loadQuestionsFromSheet(sheetName));
       }
 
-      final payload = _decodeVisualizationJson(response.body);
-      final table = payload['table'];
-      if (table is! Map<String, dynamic>) {
-        throw const FormatException('table が見つかりません。');
-      }
-
-      final rows = table['rows'];
-      if (rows is! List) {
-        throw const FormatException('rows が見つかりません。');
-      }
-
-      return rows
-          .map(_valuesFromRow)
-          .where((values) => values.any((value) => value.isNotEmpty))
-          .where((values) => !_isHeaderRow(values))
-          .map(_questionFromValues)
-          .toList(growable: false);
+      return List<Question>.unmodifiable(questions);
     } on GoogleSheetException {
       rethrow;
     } on FormatException catch (error) {
@@ -63,6 +57,35 @@ class GoogleSheetService {
     } catch (error) {
       throw GoogleSheetException('問題データの取得中にエラーが発生しました: $error');
     }
+  }
+
+  Future<List<Question>> _loadQuestionsFromSheet(String sheetName) async {
+    final response = await _client.get(_sheetJsonUri(sheetName));
+
+    if (response.statusCode != 200) {
+      throw GoogleSheetException(
+        'Google Sheetsから問題を取得できませんでした。'
+        'シート: $sheetName, ステータスコード: ${response.statusCode}',
+      );
+    }
+
+    final payload = _decodeVisualizationJson(response.body);
+    final table = payload['table'];
+    if (table is! Map<String, dynamic>) {
+      throw FormatException('table が見つかりません。シート: $sheetName');
+    }
+
+    final rows = table['rows'];
+    if (rows is! List) {
+      throw FormatException('rows が見つかりません。シート: $sheetName');
+    }
+
+    return rows
+        .map(_valuesFromRow)
+        .where((values) => values.any((value) => value.isNotEmpty))
+        .where((values) => !_isHeaderRow(values))
+        .map((values) => _questionFromValues(values, sheetName: sheetName))
+        .toList(growable: false);
   }
 
   Map<String, dynamic> _decodeVisualizationJson(String responseBody) {
@@ -127,12 +150,20 @@ class GoogleSheetService {
     return true;
   }
 
-  Question _questionFromValues(List<String> values) {
+  Question _questionFromValues(
+    List<String> values, {
+    required String sheetName,
+  }) {
     if (values.length < 9) {
       throw FormatException('問題行には9列以上必要です: $values');
     }
 
-    return Question.fromSheetRow(values);
+    final valuesWithCategory = List<String>.of(values);
+    if (valuesWithCategory[1].isEmpty) {
+      valuesWithCategory[1] = sheetName;
+    }
+
+    return Question.fromSheetRow(valuesWithCategory);
   }
 }
 

@@ -4,6 +4,9 @@ enum QuestionCategory {
   kinesiology('運動学'),
   pathology('病理学'),
   clinicalMedicine('一般臨床医学'),
+  surgery('外科学'),
+  orthopedics('整形外科学'),
+  rehabilitationMedicine('リハビリテーション医学'),
   judoTherapyTheory('柔道整復理論'),
   relatedLaws('関係法規');
 
