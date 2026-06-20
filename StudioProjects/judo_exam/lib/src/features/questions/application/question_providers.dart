@@ -4,7 +4,7 @@ import '../domain/question.dart';
 import '../domain/question_category.dart';
 
 final sampleQuestionsProvider = Provider<List<Question>>((ref) {
-  return const [
+  return  [
     Question(
       id: 'sample-anatomy-001',
       category: QuestionCategory.anatomy,
