@@ -6,6 +6,7 @@ import '../../navigation/application/navigation_provider.dart';
 import '../../questions/application/question_providers.dart';
 import '../../questions/domain/question.dart';
 import '../../questions/domain/question_category.dart';
+import '../../questions/presentation/question_exam_screen.dart';
 import '../../settings/application/settings_providers.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -36,10 +37,7 @@ class HomeScreen extends ConsumerWidget {
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          ref.read(selectedQuestionCategoryProvider.notifier).state = null;
-          ref.read(selectedTabIndexProvider.notifier).select(1);
-        },
+        onPressed: () => _startRandomExam(context, questionsAsync),
         icon: const Icon(Icons.play_arrow_rounded),
         label: const Text('問題を解く'),
         backgroundColor: colorScheme.primary,
@@ -47,6 +45,20 @@ class HomeScreen extends ConsumerWidget {
       ),
     );
   }
+}
+
+void _startRandomExam(BuildContext context, AsyncValue<List<Question>> questionsAsync) {
+  questionsAsync.whenData((questions) {
+    final shuffled = List<Question>.of(questions)..shuffle();
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => QuestionExamScreen(
+          questions: shuffled,
+          title: 'ランダム出題',
+        ),
+      ),
+    );
+  });
 }
 
 class _HomeContent extends ConsumerWidget {
@@ -94,9 +106,17 @@ class _HomeContent extends ConsumerWidget {
               category: category,
               questionCount: categoryCounts[category] ?? 0,
               onTap: () {
-                ref.read(selectedQuestionCategoryProvider.notifier).state =
-                    category;
-                ref.read(selectedTabIndexProvider.notifier).select(1);
+                final categoryQuestions = questions
+                    .where((question) => question.category == category)
+                    .toList(growable: false);
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => QuestionExamScreen(
+                      questions: categoryQuestions,
+                      title: category.label,
+                    ),
+                  ),
+                );
               },
             );
           },
@@ -109,14 +129,6 @@ class _HomeContent extends ConsumerWidget {
         ),
         const SizedBox(height: 12),
         _AccuracyCard(categories: QuestionCategory.values),
-        const SizedBox(height: 24),
-        const _SectionHeader(
-          icon: Icons.auto_graph_rounded,
-          title: '今後の拡張エリア',
-          subtitle: '学習状況をより詳しく可視化するためのスペース',
-        ),
-        const SizedBox(height: 12),
-        const _ExpansionGrid(),
         const SizedBox(height: 24),
         const _LearningMenu(),
       ],
@@ -425,62 +437,6 @@ class _AccuracyRow extends StatelessWidget {
   }
 }
 
-class _ExpansionGrid extends StatelessWidget {
-  const _ExpansionGrid();
-
-  @override
-  Widget build(BuildContext context) {
-    return GridView.count(
-      crossAxisCount: 1,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      mainAxisSpacing: 12,
-      childAspectRatio: 3.2,
-      children: const [
-        _ExpansionCard(icon: Icons.show_chart_rounded, title: '正解率推移グラフ'),
-        _ExpansionCard(icon: Icons.schedule_rounded, title: '学習時間'),
-        _ExpansionCard(icon: Icons.emoji_events_rounded, title: 'ランキング'),
-      ],
-    );
-  }
-}
-
-class _ExpansionCard extends StatelessWidget {
-  const _ExpansionCard({required this.icon, required this.title});
-
-  final IconData icon;
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    return _MedicalCard(
-      child: Row(
-        children: [
-          _IconBadge(icon: icon),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(title, style: Theme.of(context).textTheme.titleMedium),
-                const SizedBox(height: 4),
-                Text(
-                  '近日公開予定',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const Icon(Icons.more_horiz_rounded),
-        ],
-      ),
-    );
-  }
-}
-
 class _LearningMenu extends ConsumerWidget {
   const _LearningMenu();
 
@@ -500,9 +456,17 @@ class _LearningMenu extends ConsumerWidget {
           title: 'ランダム出題',
           subtitle: 'カテゴリ横断で4択問題を出題します',
           onTap: () {
-            ref.read(selectedQuestionCategoryProvider.notifier).state = null;
-            ref.read(randomQuestionModeProvider.notifier).state = true;
-            ref.read(selectedTabIndexProvider.notifier).select(1);
+            ref.read(questionsProvider).whenData((questions) {
+              final shuffled = List<Question>.of(questions)..shuffle();
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => QuestionExamScreen(
+                    questions: shuffled,
+                    title: 'ランダム出題',
+                  ),
+                ),
+              );
+            });
           },
         ),
         _MenuTile(
@@ -655,7 +619,7 @@ class _LoadingHome extends StatelessWidget {
         children: [
           CircularProgressIndicator(),
           SizedBox(height: 16),
-          Text('Google Sheetsから学習データを取得しています...'),
+          Text('読み込み中...'),
         ],
       ),
     );
