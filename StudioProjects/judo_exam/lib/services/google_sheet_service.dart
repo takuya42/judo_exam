@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 
 import '../src/features/questions/domain/question.dart';
-import '../src/features/questions/domain/question_category.dart';
 
 final googleSheetServiceProvider = Provider<GoogleSheetService>((ref) {
   final client = http.Client();
@@ -133,46 +132,7 @@ class GoogleSheetService {
       throw FormatException('問題行には9列以上必要です: $values');
     }
 
-    return Question(
-      id: values[0],
-      category: QuestionCategory.fromSheetValue(values[1]),
-      questionText: values[2],
-      choices: values.sublist(3, 7),
-      correctChoiceIndex: _answerIndex(values[7]),
-      explanation: values[8],
-      isPremium: values.length > 9 ? _parsePremium(values[9]) : true,
-      year: values.length > 10 && values[10].isNotEmpty
-          ? int.parse(values[10])
-          : null,
-    );
-  }
-
-  int _answerIndex(String value) {
-    final answer = int.tryParse(value);
-    if (answer == null) {
-      throw FormatException('answer は数値である必要があります: $value');
-    }
-
-    if (answer >= 1 && answer <= 4) {
-      return answer - 1;
-    }
-    if (answer >= 0 && answer < 4) {
-      return answer;
-    }
-
-    throw FormatException('answer は0〜3または1〜4である必要があります: $value');
-  }
-
-  bool _parsePremium(String value) {
-    final normalized = value.toLowerCase();
-    if (normalized == 'true' || normalized == '1' || normalized == '有料') {
-      return true;
-    }
-    if (normalized == 'false' || normalized == '0' || normalized == '無料') {
-      return false;
-    }
-
-    return true;
+    return Question.fromSheetRow(values);
   }
 }
 
