@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../questions/application/question_providers.dart';
 import '../../questions/domain/question.dart';
-import '../../questions/presentation/question_list_screen.dart';
+import '../../questions/presentation/question_exam_screen.dart';
 import '../../settings/application/settings_providers.dart';
 
 class FavoritesScreen extends ConsumerWidget {
@@ -41,10 +41,13 @@ class FavoritesScreen extends ConsumerWidget {
                   title: Text(question.questionText),
                   subtitle: Text(question.category.label),
                   trailing: const Icon(Icons.chevron_right),
-                  onTap: () => showModalBottomSheet<void>(
-                    context: context,
-                    showDragHandle: true,
-                    builder: (context) => QuestionPreview(question: question),
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => QuestionExamScreen(
+                        questions: [question],
+                        title: 'お気に入り',
+                      ),
+                    ),
                   ),
                 ),
               );
