@@ -143,7 +143,7 @@ class SettingsScreen extends ConsumerWidget {
     if (confirmed != true || !context.mounted) return;
 
     await ref.read(learningDataControllerProvider.notifier).resetLearningData();
-    ref.read(selectedTabIndexProvider.notifier).state = 0;
+    ref.read(selectedTabIndexProvider.notifier).select(0);
     if (!context.mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(

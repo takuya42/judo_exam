@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:judo_exam/src/shared/widgets/auto_size_text.dart';
 
 import '../../navigation/application/navigation_provider.dart';
 import '../../questions/application/question_providers.dart';
@@ -37,7 +38,7 @@ class HomeScreen extends ConsumerWidget {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
           ref.read(selectedQuestionCategoryProvider.notifier).state = null;
-          ref.read(selectedTabIndexProvider.notifier).state = 1;
+          ref.read(selectedTabIndexProvider.notifier).select(1);
         },
         icon: const Icon(Icons.play_arrow_rounded),
         label: const Text('問題を解く'),
@@ -85,7 +86,7 @@ class _HomeContent extends ConsumerWidget {
             crossAxisCount: 2,
             mainAxisSpacing: 12,
             crossAxisSpacing: 12,
-            childAspectRatio: 1.35,
+            childAspectRatio: 1.08,
           ),
           itemBuilder: (context, index) {
             final category = QuestionCategory.values[index];
@@ -95,7 +96,7 @@ class _HomeContent extends ConsumerWidget {
               onTap: () {
                 ref.read(selectedQuestionCategoryProvider.notifier).state =
                     category;
-                ref.read(selectedTabIndexProvider.notifier).state = 1;
+                ref.read(selectedTabIndexProvider.notifier).select(1);
               },
             );
           },
@@ -316,13 +317,13 @@ class _CategoryCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(14),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
-                  _IconBadge(icon: _categoryIcon(category), size: 38),
+                  _IconBadge(icon: _categoryIcon(category), size: 36),
                   const Spacer(),
                   Icon(
                     Icons.chevron_right_rounded,
@@ -330,18 +331,27 @@ class _CategoryCard extends StatelessWidget {
                   ),
                 ],
               ),
-              const Spacer(),
-              Text(
-                category.label,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
+              const SizedBox(height: 10),
+              Expanded(
+                child: Align(
+                  alignment: Alignment.topLeft,
+                  child: AutoSizeText(
+                    category.label,
+                    maxLines: 2,
+                    minFontSize: 12,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      height: 1.18,
+                    ),
+                  ),
                 ),
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 4),
               Text(
                 '$questionCount問',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   color: colorScheme.primary,
                   fontWeight: FontWeight.w800,
@@ -487,20 +497,20 @@ class _LearningMenu extends ConsumerWidget {
           subtitle: 'カテゴリ横断で4択問題を出題します',
           onTap: () {
             ref.read(selectedQuestionCategoryProvider.notifier).state = null;
-            ref.read(selectedTabIndexProvider.notifier).state = 1;
+            ref.read(selectedTabIndexProvider.notifier).select(1);
           },
         ),
         _MenuTile(
           icon: Icons.error_outline_rounded,
           title: '間違えた問題一覧',
           subtitle: '復習が必要な問題を確認します',
-          onTap: () => ref.read(selectedTabIndexProvider.notifier).state = 2,
+          onTap: () => ref.read(selectedTabIndexProvider.notifier).select(2),
         ),
         _MenuTile(
           icon: Icons.assignment_rounded,
           title: '模擬試験',
           subtitle: '本番形式の演習を開始します',
-          onTap: () => ref.read(selectedTabIndexProvider.notifier).state = 4,
+          onTap: () => ref.read(selectedTabIndexProvider.notifier).select(4),
         ),
       ],
     );
