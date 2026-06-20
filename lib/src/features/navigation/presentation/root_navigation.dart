@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../exam/presentation/mock_exam_screen.dart';
 import '../../favorites/presentation/favorites_screen.dart';
 import '../../history/presentation/study_history_screen.dart';
 import '../../home/presentation/home_screen.dart';
@@ -17,7 +16,6 @@ class RootNavigation extends ConsumerWidget {
     QuestionListScreen(),
     StudyHistoryScreen(),
     FavoritesScreen(),
-    MockExamScreen(),
     SettingsScreen(),
   ];
 
@@ -37,7 +35,6 @@ class RootNavigation extends ConsumerWidget {
           BottomNavigationBarItem(icon: Icon(Icons.quiz_outlined), label: '問題'),
           BottomNavigationBarItem(icon: Icon(Icons.history_outlined), label: '履歴'),
           BottomNavigationBarItem(icon: Icon(Icons.star_outline), label: 'お気に入り'),
-          BottomNavigationBarItem(icon: Icon(Icons.assignment_outlined), label: '模試'),
           BottomNavigationBarItem(icon: Icon(Icons.settings_outlined), label: '設定'),
         ],
       ),

@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../services/google_sheet_service.dart';
@@ -16,3 +18,19 @@ final freeQuestionCountProvider = Provider<AsyncValue<int>>((ref) {
 });
 
 final selectedQuestionCategoryProvider = StateProvider<QuestionCategory?>((ref) => null);
+
+final randomQuestionModeProvider = StateProvider<bool>((ref) => false);
+
+final randomQuestionsProvider = Provider<AsyncValue<List<Question>>>((ref) {
+  return ref.watch(questionsProvider).whenData((questions) {
+    final shuffled = List<Question>.of(questions)..shuffle(Random());
+    for (var i = 1; i < shuffled.length; i++) {
+      if (shuffled[i].id == shuffled[i - 1].id && i + 1 < shuffled.length) {
+        final current = shuffled[i];
+        shuffled[i] = shuffled[i + 1];
+        shuffled[i + 1] = current;
+      }
+    }
+    return List<Question>.unmodifiable(shuffled);
+  });
+});
