@@ -1,59 +1,44 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../questions/application/question_providers.dart';
+import '../../settings/application/settings_providers.dart';
 
 class StudyHistoryScreen extends ConsumerWidget {
   const StudyHistoryScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final questionsAsync = ref.watch(questionsProvider);
+    final history = ref.watch(learningDataControllerProvider).history;
 
     return Scaffold(
       appBar: AppBar(title: const Text('学習履歴')),
-      body: questionsAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => _RetryState(error: error),
-        data: (_) => const _EmptyState(
-          icon: Icons.history,
-          title: '学習履歴はまだありません',
-          message: 'Google Sheets由来の問題に解答すると、'
-              '正答率や間違えた問題をここで確認できます。',
-        ),
-      ),
-    );
-  }
-}
-
-class _RetryState extends ConsumerWidget {
-  const _RetryState({required this.error});
-
-  final Object error;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              '問題を取得できませんでした',
-              style: Theme.of(context).textTheme.titleLarge,
+      body: history.isEmpty
+          ? const _EmptyState(
+              icon: Icons.history,
+              title: '学習履歴はまだありません',
+              message: '問題に解答すると、回答日時・正誤・カテゴリが最新順で表示されます。',
+            )
+          : ListView.separated(
+              padding: const EdgeInsets.all(16),
+              itemCount: history.length,
+              separatorBuilder: (_, _) => const SizedBox(height: 10),
+              itemBuilder: (context, index) {
+                final entry = history[index];
+                return Card(
+                  child: ListTile(
+                    leading: Icon(
+                      entry.isCorrect ? Icons.check_circle_rounded : Icons.cancel_rounded,
+                      color: entry.isCorrect
+                          ? Theme.of(context).colorScheme.primary
+                          : Theme.of(context).colorScheme.error,
+                    ),
+                    title: Text(entry.questionText, maxLines: 2, overflow: TextOverflow.ellipsis),
+                    subtitle: Text('${entry.category.label} / ${_formatDateTime(entry.answeredAt)}'),
+                    trailing: Text(entry.isCorrect ? '正解' : '不正解'),
+                  ),
+                );
+              },
             ),
-            const SizedBox(height: 8),
-            Text('$error', textAlign: TextAlign.center),
-            const SizedBox(height: 16),
-            FilledButton.icon(
-              onPressed: () => ref.invalidate(questionsProvider),
-              icon: const Icon(Icons.refresh),
-              label: const Text('再試行'),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
@@ -87,4 +72,9 @@ class _EmptyState extends StatelessWidget {
       ),
     );
   }
+}
+
+String _formatDateTime(DateTime dateTime) {
+  String two(int value) => value.toString().padLeft(2, '0');
+  return '${dateTime.year}/${two(dateTime.month)}/${two(dateTime.day)} ${two(dateTime.hour)}:${two(dateTime.minute)}';
 }

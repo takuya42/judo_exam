@@ -365,18 +365,22 @@ class _CategoryCard extends StatelessWidget {
   }
 }
 
-class _AccuracyCard extends StatelessWidget {
+class _AccuracyCard extends ConsumerWidget {
   const _AccuracyCard({required this.categories});
 
   final List<QuestionCategory> categories;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final learningSummary = ref.watch(learningDataControllerProvider);
     return _MedicalCard(
       child: Column(
         children: [
           for (final category in categories) ...[
-            _AccuracyRow(category: category, accuracy: 0),
+            _AccuracyRow(
+              category: category,
+              accuracy: learningSummary.categoryCorrectRate(category),
+            ),
             if (category != categories.last) const SizedBox(height: 14),
           ],
         ],
@@ -497,6 +501,7 @@ class _LearningMenu extends ConsumerWidget {
           subtitle: 'カテゴリ横断で4択問題を出題します',
           onTap: () {
             ref.read(selectedQuestionCategoryProvider.notifier).state = null;
+            ref.read(randomQuestionModeProvider.notifier).state = true;
             ref.read(selectedTabIndexProvider.notifier).select(1);
           },
         ),
@@ -507,10 +512,10 @@ class _LearningMenu extends ConsumerWidget {
           onTap: () => ref.read(selectedTabIndexProvider.notifier).select(2),
         ),
         _MenuTile(
-          icon: Icons.assignment_rounded,
-          title: '模擬試験',
-          subtitle: '本番形式の演習を開始します',
-          onTap: () => ref.read(selectedTabIndexProvider.notifier).select(4),
+          icon: Icons.star_rounded,
+          title: 'お気に入り',
+          subtitle: '保存した問題を復習します',
+          onTap: () => ref.read(selectedTabIndexProvider.notifier).select(3),
         ),
       ],
     );

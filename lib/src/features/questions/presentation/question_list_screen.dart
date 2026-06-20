@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../settings/application/settings_providers.dart';
 import '../application/question_providers.dart';
 import '../domain/question.dart';
 import '../domain/question_category.dart';
@@ -12,16 +13,36 @@ class QuestionListScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final questionsAsync = ref.watch(questionsProvider);
     final selectedCategory = ref.watch(selectedQuestionCategoryProvider);
+    final isRandomMode = ref.watch(randomQuestionModeProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(selectedCategory == null ? '問題一覧' : selectedCategory.label),
+        title: Text(
+          isRandomMode
+              ? 'ランダム出題'
+              : selectedCategory == null
+                  ? '問題一覧'
+                  : selectedCategory.label,
+        ),
         actions: [
-          if (selectedCategory != null)
+          IconButton(
+            tooltip: isRandomMode ? '通常順に戻す' : 'ランダム出題',
+            onPressed: () {
+              ref.read(selectedQuestionCategoryProvider.notifier).state = null;
+              ref.read(randomQuestionModeProvider.notifier).state = !isRandomMode;
+            },
+            icon: Icon(
+              isRandomMode
+                  ? Icons.format_list_bulleted_rounded
+                  : Icons.shuffle_rounded,
+            ),
+          ),
+          if (selectedCategory != null || isRandomMode)
             TextButton.icon(
-              onPressed: () => ref
-                  .read(selectedQuestionCategoryProvider.notifier)
-                  .state = null,
+              onPressed: () {
+                ref.read(selectedQuestionCategoryProvider.notifier).state = null;
+                ref.read(randomQuestionModeProvider.notifier).state = false;
+              },
               icon: const Icon(Icons.filter_alt_off_rounded),
               label: const Text('全て'),
             ),
@@ -31,9 +52,12 @@ class QuestionListScreen extends ConsumerWidget {
         loading: () => const _LoadingQuestions(),
         error: (error, _) => _QuestionLoadError(error: error),
         data: (questions) {
+          final sourceQuestions = isRandomMode
+              ? ref.watch(randomQuestionsProvider).value ?? questions
+              : questions;
           final visibleQuestions = selectedCategory == null
-              ? questions
-              : questions
+              ? sourceQuestions
+              : sourceQuestions
                   .where((question) => question.category == selectedCategory)
                   .toList(growable: false);
 
@@ -58,7 +82,7 @@ class QuestionListScreen extends ConsumerWidget {
                   onTap: () => showModalBottomSheet<void>(
                     context: context,
                     showDragHandle: true,
-                    builder: (context) => _QuestionPreview(question: question),
+                    builder: (context) => QuestionPreview(question: question),
                   ),
                 ),
               );
@@ -92,16 +116,16 @@ class _EmptyQuestionList extends StatelessWidget {
   }
 }
 
-class _QuestionPreview extends StatefulWidget {
-  const _QuestionPreview({required this.question});
+class QuestionPreview extends ConsumerStatefulWidget {
+  const QuestionPreview({super.key, required this.question});
 
   final Question question;
 
   @override
-  State<_QuestionPreview> createState() => _QuestionPreviewState();
+  ConsumerState<QuestionPreview> createState() => _QuestionPreviewState();
 }
 
-class _QuestionPreviewState extends State<_QuestionPreview> {
+class _QuestionPreviewState extends ConsumerState<QuestionPreview> {
   int? _selectedChoiceIndex;
 
   @override
@@ -116,18 +140,51 @@ class _QuestionPreviewState extends State<_QuestionPreview> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              question.questionText,
-              style: Theme.of(context).textTheme.titleLarge,
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Text(
+                    question.questionText,
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                ),
+                IconButton(
+                  tooltip: ref
+                          .watch(learningDataControllerProvider)
+                          .isFavorite(question.id)
+                      ? 'お気に入り解除'
+                      : 'お気に入り登録',
+                  onPressed: () => ref
+                      .read(learningDataControllerProvider.notifier)
+                      .toggleFavorite(question),
+                  icon: Icon(
+                    ref
+                            .watch(learningDataControllerProvider)
+                            .isFavorite(question.id)
+                        ? Icons.star_rounded
+                        : Icons.star_border_rounded,
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 16),
             for (final entry in question.choices.indexed)
               Padding(
                 padding: const EdgeInsets.only(bottom: 8),
                 child: OutlinedButton(
-                  onPressed: () => setState(
-                    () => _selectedChoiceIndex = entry.$1,
-                  ),
+                  onPressed: selectedChoiceIndex == null
+                      ? () {
+                          final choiceIndex = entry.$1;
+                          setState(() => _selectedChoiceIndex = choiceIndex);
+                          ref
+                              .read(learningDataControllerProvider.notifier)
+                              .recordAnswer(
+                                question: question,
+                                isCorrect: question.isCorrect(choiceIndex),
+                              );
+                        }
+                      : null,
                   child: Align(
                     alignment: Alignment.centerLeft,
                     child: Text('${entry.$1 + 1}. ${entry.$2}'),
