@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'question_category.dart';
 
 class Question {
@@ -26,6 +28,22 @@ class Question {
   final int? year;
 
   String get correctChoice => choices[correctChoiceIndex];
+
+  Question shuffledChoices({Random? random}) {
+    final indexedChoices = choices.indexed.toList(growable: false)
+      ..shuffle(random);
+    final shuffledChoices = indexedChoices
+        .map((entry) => entry.$2)
+        .toList(growable: false);
+    final shuffledCorrectChoiceIndex = indexedChoices.indexWhere(
+      (entry) => entry.$1 == correctChoiceIndex,
+    );
+
+    return copyWith(
+      choices: shuffledChoices,
+      correctChoiceIndex: shuffledCorrectChoiceIndex,
+    );
+  }
 
   bool isCorrect(int choiceIndex) => choiceIndex == correctChoiceIndex;
 

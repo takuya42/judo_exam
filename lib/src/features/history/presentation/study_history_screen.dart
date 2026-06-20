@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../questions/application/question_providers.dart';
+import '../../questions/domain/question.dart';
+import '../../questions/presentation/question_exam_screen.dart';
 import '../../settings/application/settings_providers.dart';
 
 class StudyHistoryScreen extends ConsumerWidget {
@@ -9,6 +12,7 @@ class StudyHistoryScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final history = ref.watch(learningDataControllerProvider).history;
+    final questionsAsync = ref.watch(questionsProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('学習履歴')),
@@ -24,6 +28,9 @@ class StudyHistoryScreen extends ConsumerWidget {
               separatorBuilder: (_, _) => const SizedBox(height: 10),
               itemBuilder: (context, index) {
                 final entry = history[index];
+                final question = questionsAsync.valueOrNull == null
+                    ? null
+                    : _findQuestion(questionsAsync.valueOrNull!, entry.questionId);
                 return Card(
                   child: ListTile(
                     leading: Icon(
@@ -35,11 +42,28 @@ class StudyHistoryScreen extends ConsumerWidget {
                     title: Text(entry.questionText, maxLines: 2, overflow: TextOverflow.ellipsis),
                     subtitle: Text('${entry.category.label} / ${_formatDateTime(entry.answeredAt)}'),
                     trailing: Text(entry.isCorrect ? '正解' : '不正解'),
+                    onTap: question == null
+                        ? null
+                        : () => Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) => QuestionExamScreen(
+                                  questions: [question],
+                                  title: '学習履歴',
+                                ),
+                              ),
+                            ),
                   ),
                 );
               },
             ),
     );
+  }
+
+  Question? _findQuestion(List<Question> questions, String questionId) {
+    for (final question in questions) {
+      if (question.id == questionId) return question;
+    }
+    return null;
   }
 }
 
