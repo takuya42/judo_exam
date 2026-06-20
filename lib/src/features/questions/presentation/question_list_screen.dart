@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../application/question_providers.dart';
 import '../domain/question.dart';
+import '../domain/question_category.dart';
 
 class QuestionListScreen extends ConsumerWidget {
   const QuestionListScreen({super.key});
@@ -10,23 +11,42 @@ class QuestionListScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final questionsAsync = ref.watch(questionsProvider);
+    final selectedCategory = ref.watch(selectedQuestionCategoryProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('問題一覧')),
+      appBar: AppBar(
+        title: Text(selectedCategory == null ? '問題一覧' : selectedCategory.label),
+        actions: [
+          if (selectedCategory != null)
+            TextButton.icon(
+              onPressed: () => ref
+                  .read(selectedQuestionCategoryProvider.notifier)
+                  .state = null,
+              icon: const Icon(Icons.filter_alt_off_rounded),
+              label: const Text('全て'),
+            ),
+        ],
+      ),
       body: questionsAsync.when(
         loading: () => const _LoadingQuestions(),
         error: (error, _) => _QuestionLoadError(error: error),
         data: (questions) {
-          if (questions.isEmpty) {
-            return const Center(child: Text('表示できる問題がありません。'));
+          final visibleQuestions = selectedCategory == null
+              ? questions
+              : questions
+                  .where((question) => question.category == selectedCategory)
+                  .toList(growable: false);
+
+          if (visibleQuestions.isEmpty) {
+            return _EmptyQuestionList(selectedCategory: selectedCategory);
           }
 
           return ListView.separated(
             padding: const EdgeInsets.all(16),
-            itemCount: questions.length,
+            itemCount: visibleQuestions.length,
             separatorBuilder: (_, _) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
-              final question = questions[index];
+              final question = visibleQuestions[index];
               return Card(
                 child: ListTile(
                   title: Text(question.questionText),
@@ -45,6 +65,28 @@ class QuestionListScreen extends ConsumerWidget {
             },
           );
         },
+      ),
+    );
+  }
+}
+
+class _EmptyQuestionList extends StatelessWidget {
+  const _EmptyQuestionList({required this.selectedCategory});
+
+  final QuestionCategory? selectedCategory;
+
+  @override
+  Widget build(BuildContext context) {
+    final category = selectedCategory;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Text(
+          category == null
+              ? '表示できる問題がありません。'
+              : '${category.label}の問題はまだありません。',
+          textAlign: TextAlign.center,
+        ),
       ),
     );
   }
