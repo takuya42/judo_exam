@@ -122,6 +122,7 @@ class _AccountSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authStateProvider).valueOrNull;
+    final profile = ref.watch(userProfileProvider).valueOrNull;
     if (user == null) {
       return _SettingsSection(
         title: 'アカウント',
@@ -129,7 +130,14 @@ class _AccountSection extends ConsumerWidget {
           _SettingsTile(
             icon: Icons.g_mobiledata,
             title: 'Googleでログイン',
-            onTap: () => ref.read(authControllerProvider).signInWithGoogle(),
+            onTap: () async {
+              try {
+                await ref.read(authControllerProvider).signInWithGoogle();
+              } on Exception catch (error) {
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error is AuthFailure ? error.message : error.toString())));
+              }
+            },
           ),
           _SettingsTile(
             icon: Icons.mail_outline_rounded,
@@ -145,7 +153,7 @@ class _AccountSection extends ConsumerWidget {
         _SettingsTile(
           icon: Icons.person_outline_rounded,
           title: user.displayName?.isNotEmpty == true ? user.displayName! : 'ユーザー名未設定',
-          subtitle: user.email ?? 'メールアドレス未設定',
+          subtitle: '${user.email ?? 'メールアドレス未設定'} ・ ${profile?.isPremium == true ? 'プレミアム会員' : '無料会員'}',
           trailing: const SizedBox.shrink(),
         ),
         _SettingsTile(
