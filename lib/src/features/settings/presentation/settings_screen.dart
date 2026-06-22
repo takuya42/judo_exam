@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../auth/application/auth_providers.dart';
+import '../../auth/presentation/email_login_screen.dart';
 import '../../navigation/application/navigation_provider.dart';
+import '../../premium/presentation/premium_screen.dart';
 import '../../questions/application/question_providers.dart';
 import '../application/settings_providers.dart';
 
@@ -18,43 +21,31 @@ class SettingsScreen extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
         children: [
+          _AccountSection(),
+          const SizedBox(height: 18),
           _SettingsSection(
             title: 'アプリ',
             children: [
               _SettingsTile(
-                icon: Icons.info_outline_rounded,
-                title: 'アプリについて',
-                onTap: () => _showSimpleDialog(context, 'アプリについて',
-                    '柔道整復師国家試験対策のための学習アプリです。'),
+                icon: Icons.workspace_premium_outlined,
+                title: '買い切り版',
+                onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const PremiumScreen())),
               ),
               _SettingsTile(
                 icon: Icons.article_outlined,
                 title: '利用規約',
-                onTap: () => _showSimpleDialog(
-                  context,
-                  '利用規約',
-                  '利用規約ページは準備中です。',
-                ),
+                onTap: () => _showSimpleDialog(context, '利用規約', '利用規約ページは準備中です。'),
               ),
               _SettingsTile(
                 icon: Icons.privacy_tip_outlined,
                 title: 'プライバシーポリシー',
-                onTap: () => _showSimpleDialog(
-                  context,
-                  'プライバシーポリシー',
-                  'プライバシーポリシーページは準備中です。',
-                ),
+                onTap: () => _showSimpleDialog(context, 'プライバシーポリシー', 'プライバシーポリシーページは準備中です。'),
               ),
               _SettingsTile(
                 icon: Icons.mail_outline_rounded,
                 title: 'お問い合わせ',
-                onTap: () => _showSimpleDialog(
-                  context,
-                  'お問い合わせ',
-                  'お問い合わせフォームは準備中です。',
-                ),
+                onTap: () => _showSimpleDialog(context, 'お問い合わせ', 'お問い合わせフォームは準備中です。'),
               ),
-              const _AppVersionTile(),
             ],
           ),
           const SizedBox(height: 18),
@@ -85,30 +76,6 @@ class SettingsScreen extends ConsumerWidget {
           _SettingsSection(
             title: '表示',
             children: const [_ThemeModeTile()],
-          ),
-          const SizedBox(height: 18),
-          _SettingsSection(
-            title: 'サポート',
-            children: [
-              _SettingsTile(
-                icon: Icons.star_rate_outlined,
-                title: 'アプリ評価する',
-                onTap: () => _showSimpleDialog(
-                  context,
-                  'アプリ評価する',
-                  'ストア評価ページは準備中です。',
-                ),
-              ),
-              _SettingsTile(
-                icon: Icons.new_releases_outlined,
-                title: 'アップデート情報',
-                onTap: () => _showSimpleDialog(
-                  context,
-                  'アップデート情報',
-                  '最新のアップデート情報は準備中です。',
-                ),
-              ),
-            ],
           ),
         ],
       ),
@@ -149,6 +116,77 @@ class SettingsScreen extends ConsumerWidget {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('学習データをリセットしました')),
     );
+  }
+}
+
+
+class _AccountSection extends ConsumerWidget {
+  const _AccountSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(authStateProvider).valueOrNull;
+    if (user == null) {
+      return _SettingsSection(
+        title: 'アカウント',
+        children: [
+          _SettingsTile(
+            icon: Icons.login_rounded,
+            title: 'Googleでログイン',
+            onTap: () => ref.read(authControllerProvider).signInWithGoogle(),
+          ),
+          _SettingsTile(
+            icon: Icons.alternate_email_rounded,
+            title: 'メールアドレスでログイン',
+            onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const EmailLoginScreen())),
+          ),
+        ],
+      );
+    }
+    return _SettingsSection(
+      title: 'アカウント',
+      children: [
+        _SettingsTile(
+          icon: Icons.person_outline_rounded,
+          title: user.displayName?.isNotEmpty == true ? user.displayName! : 'ユーザー名未設定',
+          subtitle: user.email ?? 'メールアドレス未設定',
+          trailing: const SizedBox.shrink(),
+        ),
+        _SettingsTile(
+          icon: Icons.logout_rounded,
+          title: 'ログアウト',
+          onTap: () => ref.read(authControllerProvider).signOut(),
+        ),
+        _SettingsTile(
+          icon: Icons.person_remove_outlined,
+          title: 'アカウント削除（退会）',
+          isDestructive: true,
+          onTap: () => _confirmDeleteAccount(context, ref),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _confirmDeleteAccount(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('アカウントを削除しますか？'),
+        content: const Text('学習履歴・お気に入り・正解率データは削除され復元できません'),
+        actions: [
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.error),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('削除する'),
+          ),
+          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('キャンセル')),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    await ref.read(learningDataControllerProvider.notifier).resetLearningData();
+    await ref.read(authControllerProvider).deleteAccount();
+    ref.read(selectedTabIndexProvider.notifier).select(0);
   }
 }
 
@@ -267,22 +305,6 @@ class _ThemeModeTile extends ConsumerWidget {
           }
         },
       ),
-    );
-  }
-}
-
-class _AppVersionTile extends StatelessWidget {
-  const _AppVersionTile();
-
-  static const _version = '1.0.0+1';
-
-  @override
-  Widget build(BuildContext context) {
-    return const _SettingsTile(
-      icon: Icons.verified_outlined,
-      title: 'アプリバージョン',
-      subtitle: _version,
-      trailing: SizedBox.shrink(),
     );
   }
 }

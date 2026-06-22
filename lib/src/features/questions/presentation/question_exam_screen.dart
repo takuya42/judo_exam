@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../auth/application/auth_providers.dart';
+import '../../auth/presentation/auth_dialogs.dart';
 import '../../settings/application/settings_providers.dart';
 import '../domain/question.dart';
 
@@ -34,14 +36,20 @@ class _QuestionExamScreenState extends ConsumerState<QuestionExamScreen> {
   Question _shuffledQuestionAt(int index) =>
       widget.questions[index].shuffledChoices();
 
-  void _answer(int choiceIndex) {
+  Future<void> _answer(int choiceIndex) async {
     if (_selectedChoiceIndex != null) return;
 
     final question = _currentQuestion;
     if (question == null) return;
 
+    if (!await ref.read(authControllerProvider).canAnswer()) {
+      if (mounted) await showFreeLimitDialog(context);
+      return;
+    }
+
     setState(() => _selectedChoiceIndex = choiceIndex);
-    ref.read(learningDataControllerProvider.notifier).recordAnswer(
+    await ref.read(authControllerProvider).incrementAnswerCount();
+    await ref.read(learningDataControllerProvider.notifier).recordAnswer(
           question: question,
           isCorrect: question.isCorrect(choiceIndex),
         );
