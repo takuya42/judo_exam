@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:judo_exam/src/shared/widgets/auto_size_text.dart';
 
+import '../../auth/application/auth_providers.dart';
+import '../../auth/presentation/auth_dialogs.dart';
 import '../../navigation/application/navigation_provider.dart';
 import '../../questions/application/question_providers.dart';
 import '../../questions/domain/question.dart';
@@ -37,7 +39,7 @@ class HomeScreen extends ConsumerWidget {
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _startRandomExam(context, questionsAsync),
+        onPressed: () => _startRandomExam(context, ref, questionsAsync),
         icon: const Icon(Icons.play_arrow_rounded),
         label: const Text('問題を解く'),
         backgroundColor: colorScheme.primary,
@@ -47,7 +49,11 @@ class HomeScreen extends ConsumerWidget {
   }
 }
 
-void _startRandomExam(BuildContext context, AsyncValue<List<Question>> questionsAsync) {
+void _startRandomExam(BuildContext context, WidgetRef ref, AsyncValue<List<Question>> questionsAsync) {
+  if (ref.read(authStateProvider).valueOrNull == null) {
+    showLoginRequiredDialog(context, ref);
+    return;
+  }
   questionsAsync.whenData((questions) {
     final shuffled = List<Question>.of(questions)..shuffle();
     Navigator.of(context).push(
@@ -106,6 +112,10 @@ class _HomeContent extends ConsumerWidget {
               category: category,
               questionCount: categoryCounts[category] ?? 0,
               onTap: () {
+                if (ref.read(authStateProvider).valueOrNull == null) {
+                  showLoginRequiredDialog(context, ref);
+                  return;
+                }
                 final categoryQuestions = questions
                     .where((question) => question.category == category)
                     .toList(growable: false);
@@ -456,6 +466,10 @@ class _LearningMenu extends ConsumerWidget {
           title: 'ランダム出題',
           subtitle: 'カテゴリ横断で4択問題を出題します',
           onTap: () {
+            if (ref.read(authStateProvider).valueOrNull == null) {
+              showLoginRequiredDialog(context, ref);
+              return;
+            }
             ref.read(questionsProvider).whenData((questions) {
               final shuffled = List<Question>.of(questions)..shuffle();
               Navigator.of(context).push(
@@ -473,13 +487,25 @@ class _LearningMenu extends ConsumerWidget {
           icon: Icons.error_outline_rounded,
           title: '間違えた問題一覧',
           subtitle: '復習が必要な問題を確認します',
-          onTap: () => ref.read(selectedTabIndexProvider.notifier).select(2),
+          onTap: () {
+            if (ref.read(authStateProvider).valueOrNull == null) {
+              showLoginRequiredDialog(context, ref);
+              return;
+            }
+            ref.read(selectedTabIndexProvider.notifier).select(2);
+          },
         ),
         _MenuTile(
           icon: Icons.star_rounded,
           title: 'お気に入り',
           subtitle: '保存した問題を復習します',
-          onTap: () => ref.read(selectedTabIndexProvider.notifier).select(3),
+          onTap: () {
+            if (ref.read(authStateProvider).valueOrNull == null) {
+              showLoginRequiredDialog(context, ref);
+              return;
+            }
+            ref.read(selectedTabIndexProvider.notifier).select(3);
+          },
         ),
       ],
     );

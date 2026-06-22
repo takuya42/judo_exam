@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../auth/application/auth_providers.dart';
+import '../../auth/presentation/auth_dialogs.dart';
 import '../../favorites/presentation/favorites_screen.dart';
 import '../../history/presentation/study_history_screen.dart';
 import '../../home/presentation/home_screen.dart';
@@ -27,9 +29,15 @@ class RootNavigation extends ConsumerWidget {
       body: IndexedStack(index: selectedIndex, children: _screens),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: selectedIndex,
-        onTap: (index) => ref
-            .read(selectedTabIndexProvider.notifier)
-            .select(index),
+        onTap: (index) {
+          final requiresLogin = index == 1 || index == 2 || index == 3;
+          final user = ref.read(authStateProvider).valueOrNull;
+          if (requiresLogin && user == null) {
+            showLoginRequiredDialog(context, ref);
+            return;
+          }
+          ref.read(selectedTabIndexProvider.notifier).select(index);
+        },
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'ホーム'),
           BottomNavigationBarItem(icon: Icon(Icons.quiz_outlined), label: '問題'),
