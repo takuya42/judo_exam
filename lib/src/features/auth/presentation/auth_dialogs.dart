@@ -9,25 +9,51 @@ Future<void> showLoginRequiredDialog(BuildContext context, WidgetRef ref) {
   return showDialog<void>(
     context: context,
     builder: (dialogContext) => AlertDialog(
+      icon: const Icon(Icons.school_outlined),
       title: const Text('ログインして学習を開始'),
-      content: const Text('学習履歴や正解率を保存するためログインが必要です'),
+      content: const Text('学習履歴・無料利用状況・プレミアム状態を保存するためログインが必要です。'),
       actions: [
-        TextButton(
+        FilledButton.icon(
           onPressed: () async {
             Navigator.of(dialogContext).pop();
-            await ref.read(authControllerProvider).signInWithGoogle();
+            try {
+              await ref.read(authControllerProvider).signInWithGoogle();
+            } on Exception catch (error) {
+              if (!context.mounted) return;
+              _showAuthError(context, error);
+            }
           },
-          child: const Text('Googleログイン'),
+          icon: const Icon(Icons.g_mobiledata_rounded),
+          label: const Text('Googleログイン'),
         ),
-        TextButton(
+        TextButton.icon(
           onPressed: () {
             Navigator.of(dialogContext).pop();
             Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const EmailLoginScreen()));
           },
-          child: const Text('メールログイン'),
+          icon: const Icon(Icons.mail_outline_rounded),
+          label: const Text('メールログイン'),
+        ),
+        TextButton(
+          onPressed: () {
+            Navigator.of(dialogContext).pop();
+            Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const EmailLoginScreen(initialMode: AuthScreenMode.signUp)));
+          },
+          child: const Text('新規登録'),
         ),
         TextButton(onPressed: () => Navigator.of(dialogContext).pop(), child: const Text('閉じる')),
       ],
+    ),
+  );
+}
+
+void _showAuthError(BuildContext context, Object error) {
+  final message = error is AuthFailure ? error.message : error.toString();
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      behavior: SnackBarBehavior.floating,
+      backgroundColor: Theme.of(context).colorScheme.errorContainer,
+      content: Text(message, style: TextStyle(color: Theme.of(context).colorScheme.onErrorContainer)),
     ),
   );
 }
