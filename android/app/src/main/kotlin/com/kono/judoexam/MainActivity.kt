@@ -1,4 +1,4 @@
-package com.example.judo_exam
+package com.kono.judoexam
 
 import io.flutter.embedding.android.FlutterActivity
 

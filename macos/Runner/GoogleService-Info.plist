@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CLIENT_ID</key>
+	<string>1043304535721-8m8p13tqshbr2qg0p20hg94gegoak288.apps.googleusercontent.com</string>
+	<key>REVERSED_CLIENT_ID</key>
+	<string>com.googleusercontent.apps.1043304535721-8m8p13tqshbr2qg0p20hg94gegoak288</string>
+	<key>API_KEY</key>
+	<string>AIzaSyAyIeOGsKlZ-WoML69AjYaL7u8NphRXZ4E</string>
+	<key>GCM_SENDER_ID</key>
+	<string>1043304535721</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>com.example.judoExam</string>
+	<key>PROJECT_ID</key>
+	<string>judo-exam</string>
+	<key>STORAGE_BUCKET</key>
+	<string>judo-exam.firebasestorage.app</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:1043304535721:ios:8391cfca9c2af850673bb8</string>
+</dict>
+</plist>

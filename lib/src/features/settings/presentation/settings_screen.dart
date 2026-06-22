@@ -41,11 +41,7 @@ class SettingsScreen extends ConsumerWidget {
                 title: 'プライバシーポリシー',
                 onTap: () => _showSimpleDialog(context, 'プライバシーポリシー', 'プライバシーポリシーページは準備中です。'),
               ),
-              _SettingsTile(
-                icon: Icons.mail_outline_rounded,
-                title: 'お問い合わせ',
-                onTap: () => _showSimpleDialog(context, 'お問い合わせ', 'お問い合わせフォームは準備中です。'),
-              ),
+
             ],
           ),
           const SizedBox(height: 18),
@@ -131,12 +127,12 @@ class _AccountSection extends ConsumerWidget {
         title: 'アカウント',
         children: [
           _SettingsTile(
-            icon: Icons.login_rounded,
+            icon: Icons.g_mobiledata,
             title: 'Googleでログイン',
             onTap: () => ref.read(authControllerProvider).signInWithGoogle(),
           ),
           _SettingsTile(
-            icon: Icons.alternate_email_rounded,
+            icon: Icons.mail_outline_rounded,
             title: 'メールアドレスでログイン',
             onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const EmailLoginScreen())),
           ),
