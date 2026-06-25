@@ -7,6 +7,7 @@ import '../../navigation/application/navigation_provider.dart';
 import '../../premium/presentation/premium_screen.dart';
 import '../../questions/application/question_providers.dart';
 import '../application/settings_providers.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -34,12 +35,14 @@ class SettingsScreen extends ConsumerWidget {
               _SettingsTile(
                 icon: Icons.article_outlined,
                 title: '利用規約',
-                onTap: () => _showSimpleDialog(context, '利用規約', '利用規約ページは準備中です。'),
+                onTap: () => _openUrl(
+                  'https://app.notion.com/p/flutter-family/387b5c1f2cef80149324c6928bd6822a',
+                ),
               ),
               _SettingsTile(
                 icon: Icons.privacy_tip_outlined,
                 title: 'プライバシーポリシー',
-                onTap: () => _showSimpleDialog(context, 'プライバシーポリシー', 'プライバシーポリシーページは準備中です。'),
+                onTap: () => _openUrl('https://flutter-family.notion.site/38ab5c1f2cef80bcacbeedab179063c9'),
               ),
 
             ],
@@ -319,6 +322,12 @@ String _themeModeLabel(ThemeMode themeMode) {
     ThemeMode.dark => 'ダーク',
     ThemeMode.system => 'システム',
   };
+}
+Future<void> _openUrl(String url) async {
+  final uri = Uri.parse(url);
+  if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+    throw Exception('URLを開けませんでした');
+  }
 }
 
 Future<void> _showSimpleDialog(
