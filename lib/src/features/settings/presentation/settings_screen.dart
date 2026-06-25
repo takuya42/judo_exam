@@ -63,7 +63,6 @@ class SettingsScreen extends ConsumerWidget {
               _SettingsTile(
                 icon: Icons.cloud_sync_outlined,
                 title: '問題データ再取得',
-                subtitle: 'Google Sheetsを再読み込みします',
                 onTap: () {
                   ref.invalidate(questionsProvider);
                   ScaffoldMessenger.of(context).showSnackBar(
