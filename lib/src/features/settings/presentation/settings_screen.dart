@@ -349,15 +349,34 @@ Future<void> _openUrl(
   }
 
   try {
-    final launched = await launchUrl(
+    final canLaunch = await canLaunchUrl(uri);
+    debugPrint('canLaunchUrl($uri): $canLaunch');
+
+    final launchedWithPlatformDefault = await launchUrl(uri);
+    debugPrint(
+      'launchUrl($uri, mode: ${LaunchMode.platformDefault.name}): '
+      '$launchedWithPlatformDefault',
+    );
+
+    if (launchedWithPlatformDefault) {
+      return;
+    }
+
+    final launchedWithExternalApplication = await launchUrl(
       uri,
       mode: LaunchMode.externalApplication,
     );
+    debugPrint(
+      'launchUrl($uri, mode: ${LaunchMode.externalApplication.name}): '
+      '$launchedWithExternalApplication',
+    );
 
-    if (!launched && context.mounted) {
+    if (!launchedWithExternalApplication && context.mounted) {
       _showUrlLaunchError(context, title);
     }
-  } on Exception {
+  } on Exception catch (error, stackTrace) {
+    debugPrint('Failed to launch $uri: $error');
+    debugPrintStack(stackTrace: stackTrace);
     if (context.mounted) {
       _showUrlLaunchError(context, title);
     }
