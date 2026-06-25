@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../auth/application/auth_providers.dart';
 import '../../auth/presentation/email_login_screen.dart';
@@ -7,7 +8,6 @@ import '../../navigation/application/navigation_provider.dart';
 import '../../premium/presentation/premium_screen.dart';
 import '../../questions/application/question_providers.dart';
 import '../application/settings_providers.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -30,21 +30,30 @@ class SettingsScreen extends ConsumerWidget {
               _SettingsTile(
                 icon: Icons.workspace_premium_outlined,
                 title: '買い切り版',
-                onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const PremiumScreen())),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const PremiumScreen(),
+                  ),
+                ),
               ),
               _SettingsTile(
                 icon: Icons.article_outlined,
                 title: '利用規約',
                 onTap: () => _openUrl(
-                  'https://app.notion.com/p/flutter-family/387b5c1f2cef80149324c6928bd6822a',
+                  context,
+                  url: _termsOfServiceUrl,
+                  title: '利用規約',
                 ),
               ),
               _SettingsTile(
                 icon: Icons.privacy_tip_outlined,
                 title: 'プライバシーポリシー',
-                onTap: () => _openUrl('https://flutter-family.notion.site/38ab5c1f2cef80bcacbeedab179063c9'),
+                onTap: () => _openUrl(
+                  context,
+                  url: _privacyPolicyUrl,
+                  title: 'プライバシーポリシー',
+                ),
               ),
-
             ],
           ),
           const SizedBox(height: 18),
@@ -323,11 +332,42 @@ String _themeModeLabel(ThemeMode themeMode) {
     ThemeMode.system => 'システム',
   };
 }
-Future<void> _openUrl(String url) async {
+const _termsOfServiceUrl =
+    'https://flutter-family.notion.site/387b5c1f2cef80149324c6928bd6822a';
+const _privacyPolicyUrl =
+    'https://flutter-family.notion.site/38ab5c1f2cef80bcacbeedab179063c9';
+
+Future<void> _openUrl(
+  BuildContext context, {
+  required String url,
+  required String title,
+}) async {
   final uri = Uri.parse(url);
-  if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
-    throw Exception('URLを開けませんでした');
+  if (!uri.hasScheme || uri.scheme != 'https' || uri.host.isEmpty) {
+    _showUrlLaunchError(context, title);
+    return;
   }
+
+  try {
+    final launched = await launchUrl(
+      uri,
+      mode: LaunchMode.externalApplication,
+    );
+
+    if (!launched && context.mounted) {
+      _showUrlLaunchError(context, title);
+    }
+  } on Exception {
+    if (context.mounted) {
+      _showUrlLaunchError(context, title);
+    }
+  }
+}
+
+void _showUrlLaunchError(BuildContext context, String title) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text('$titleを開けませんでした。時間をおいて再度お試しください。')),
+  );
 }
 
 Future<void> _showSimpleDialog(
