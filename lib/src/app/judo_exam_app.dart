@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'force_update_gate.dart';
 import 'theme/app_theme.dart';
 import '../features/navigation/presentation/root_navigation.dart';
 import '../features/settings/application/settings_providers.dart';
@@ -18,7 +19,7 @@ class JudoExamApp extends ConsumerWidget {
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
       themeMode: themeMode,
-      home: const RootNavigation(),
+      home: const ForceUpdateGate(child: RootNavigation()),
     );
   }
 }
