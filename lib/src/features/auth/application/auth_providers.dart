@@ -169,8 +169,6 @@ class AuthController {
     }, SetOptions(merge: true));
   }
 
-  Future<void> restorePurchase() async => setPremium(true);
-
   Future<void> setPremium(bool value) async {
     final user = auth.currentUser;
     if (user == null) return;
