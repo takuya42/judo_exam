@@ -54,6 +54,16 @@ class SettingsScreen extends ConsumerWidget {
                   title: 'プライバシーポリシー',
                 ),
               ),
+              _SettingsTile(
+                icon: Icons.comment,
+                title: '問い合わせ',
+                onTap: () => _openUrl(
+                  context,
+                  url: _inquiryUrl,
+                  title: '問い合わせ',
+                ),
+              ),
+
             ],
           ),
           const SizedBox(height: 18),
@@ -335,6 +345,8 @@ const _termsOfServiceUrl =
     'https://flutter-family.notion.site/387b5c1f2cef80149324c6928bd6822a';
 const _privacyPolicyUrl =
     'https://flutter-family.notion.site/38ab5c1f2cef80bcacbeedab179063c9';
+const _inquiryUrl =
+'https://docs.google.com/forms/d/1vaIqVPMiI0e3fZBTrFsbQOs86IPVUdnYnd1fYW_cSHc/edit';
 
 Future<void> _openUrl(
   BuildContext context, {

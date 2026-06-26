@@ -40,7 +40,7 @@ class RootNavigation extends ConsumerWidget {
         },
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'ホーム'),
-          BottomNavigationBarItem(icon: Icon(Icons.quiz_outlined), label: '問題'),
+          BottomNavigationBarItem(icon: Icon(Icons.public), label: '問題'),
           BottomNavigationBarItem(icon: Icon(Icons.history_outlined), label: '履歴'),
           BottomNavigationBarItem(icon: Icon(Icons.star_outline), label: 'お気に入り'),
           BottomNavigationBarItem(icon: Icon(Icons.settings_outlined), label: '設定'),
