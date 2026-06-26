@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:judo_exam/core/constants/iap_constants.dart';
+
 import '../../auth/application/auth_providers.dart';
 
 class PremiumScreen extends ConsumerWidget {
@@ -58,7 +60,10 @@ class PremiumScreen extends ConsumerWidget {
                   Text('1,500円（税込）', style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w900, color: const Color(0xFF006C52))),
                   const SizedBox(height: 14),
                   FilledButton.icon(
-                    onPressed: () => ref.read(authControllerProvider).setPremium(true),
+                    onPressed: () => _purchasePremium(
+                      ref,
+                      productId: IapConstants.premiumProductId,
+                    ),
                     icon: const Icon(Icons.lock_open_rounded),
                     label: const Text('買い切り版を購入'),
                   ),
@@ -72,5 +77,10 @@ class PremiumScreen extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  void _purchasePremium(WidgetRef ref, {required String productId}) {
+    assert(productId == IapConstants.premiumProductId);
+    ref.read(authControllerProvider).setPremium(true);
   }
 }
