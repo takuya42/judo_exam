@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart' as apple;
 
 const freeAnswerLimit = 30;
 final firebaseAuthProvider = Provider<FirebaseAuth>((ref) => FirebaseAuth.instance);
@@ -58,6 +59,52 @@ class AuthController {
       debugPrint('[AuthController] FirebaseException during Google sign-in: plugin=${error.plugin} code=${error.code} message=${error.message}');
       Error.throwWithStackTrace(AuthFailure.fromFirestore(error), stackTrace);
     }
+  }
+
+  Future<AuthSession> signInWithApple() async {
+    debugPrint('[AuthController] Apple sign-in started');
+    try {
+      final appleCredential = await apple.SignInWithApple.getAppleIDCredential(
+        scopes: [
+          apple.AppleIDAuthorizationScopes.email,
+          apple.AppleIDAuthorizationScopes.fullName,
+        ],
+      );
+      final identityToken = appleCredential.identityToken;
+      if (identityToken == null || identityToken.isEmpty) {
+        throw const AuthFailure('Apple ID認証トークンを取得できませんでした。時間をおいて再度お試しください。');
+      }
+      final credential = OAuthProvider('apple.com').credential(
+        idToken: identityToken,
+        accessToken: appleCredential.authorizationCode,
+      );
+      final userCredential = await auth.signInWithCredential(credential);
+      final displayName = _appleDisplayName(appleCredential);
+      if (displayName != null && (userCredential.user?.displayName == null || userCredential.user!.displayName!.isEmpty)) {
+        await userCredential.user?.updateDisplayName(displayName);
+      }
+      final profile = await ensureUserDocument(userCredential.user, provider: 'apple');
+      debugPrint('[AuthController] Apple sign-in succeeded uid=${userCredential.user?.uid} isPremium=${profile?.isPremium}');
+      return AuthSession(userCredential: userCredential, profile: profile);
+    } on apple.SignInWithAppleAuthorizationException catch (error, stackTrace) {
+      debugPrint('[AuthController] Apple authorization exception: code=${error.code} message=${error.message}');
+      if (error.code == apple.AuthorizationErrorCode.canceled) {
+        Error.throwWithStackTrace(const AuthCanceledException(), stackTrace);
+      }
+      Error.throwWithStackTrace(AuthFailure('Appleログインに失敗しました（${error.code.name}）。時間をおいて再度お試しください。'), stackTrace);
+    } on FirebaseAuthException catch (error, stackTrace) {
+      debugPrint('[AuthController] FirebaseAuthException during Apple sign-in: code=${error.code} message=${error.message}');
+      Error.throwWithStackTrace(AuthFailure.fromFirebaseAuth(error), stackTrace);
+    } on FirebaseException catch (error, stackTrace) {
+      debugPrint('[AuthController] FirebaseException during Apple sign-in: plugin=${error.plugin} code=${error.code} message=${error.message}');
+      Error.throwWithStackTrace(AuthFailure.fromFirestore(error), stackTrace);
+    }
+  }
+
+  String? _appleDisplayName(apple.AuthorizationCredentialAppleID credential) {
+    final parts = [credential.givenName, credential.familyName].whereType<String>().where((part) => part.trim().isNotEmpty).toList();
+    if (parts.isEmpty) return null;
+    return parts.join(' ');
   }
 
   Future<AuthSession> signInWithEmail(String email, String password) async {
@@ -149,6 +196,7 @@ class AuthController {
 
   String _providerFor(User user) {
     if (user.providerData.any((info) => info.providerId == GoogleAuthProvider.PROVIDER_ID)) return 'google';
+    if (user.providerData.any((info) => info.providerId == 'apple.com')) return 'apple';
     return 'email';
   }
 

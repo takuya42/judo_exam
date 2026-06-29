@@ -1,5 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart' as apple;
 
 import '../application/auth_providers.dart';
 
@@ -22,6 +24,7 @@ class _EmailLoginScreenState extends ConsumerState<EmailLoginScreen> {
   bool _isLoading = false;
 
   bool get _isCreating => _mode == AuthScreenMode.signUp;
+  bool get _showsAppleSignIn => !kIsWeb && defaultTargetPlatform == TargetPlatform.iOS;
 
   @override
   void dispose() {
@@ -54,6 +57,22 @@ class _EmailLoginScreenState extends ConsumerState<EmailLoginScreen> {
     setState(() => _isLoading = true);
     try {
       await ref.read(authControllerProvider).signInWithGoogle();
+      if (mounted) Navigator.of(context).pop();
+    } on AuthCanceledException catch (error) {
+      _showError(error.toString());
+    } on AuthFailure catch (error) {
+      _showError(error.message);
+    } on Exception catch (error) {
+      _showError('$error');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _signInWithApple() async {
+    setState(() => _isLoading = true);
+    try {
+      await ref.read(authControllerProvider).signInWithApple();
       if (mounted) Navigator.of(context).pop();
     } on AuthCanceledException catch (error) {
       _showError(error.toString());
@@ -157,6 +176,21 @@ class _EmailLoginScreenState extends ConsumerState<EmailLoginScreen> {
                 icon: const Icon(Icons.g_mobiledata_rounded, size: 30),
                 label: Text(_isCreating ? 'Googleで登録' : 'Googleログイン'),
               ),
+              if (_showsAppleSignIn) ...[
+                const SizedBox(height: 12),
+                SizedBox(
+                  height: 52,
+                  width: double.infinity,
+                  child: apple.SignInWithAppleButton(
+                    borderRadius: const BorderRadius.all(Radius.circular(28)),
+                    height: 52,
+                    iconAlignment: apple.IconAlignment.center,
+                    onPressed: _isLoading ? null : _signInWithApple,
+                    style: apple.SignInWithAppleButtonStyle.black,
+                    text: _isCreating ? 'Appleで登録' : 'Appleでログイン',
+                  ),
+                ),
+              ],
               const SizedBox(height: 14),
               Row(
                 children: [
