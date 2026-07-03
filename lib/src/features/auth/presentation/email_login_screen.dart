@@ -184,7 +184,7 @@ class _EmailLoginScreenState extends ConsumerState<EmailLoginScreen> {
                   child: apple.SignInWithAppleButton(
                     borderRadius: const BorderRadius.all(Radius.circular(28)),
                     height: 52,
-                    iconAlignment: apple.IconAlignment.center,
+                    iconAlignment: apple.SignInWithAppleIconAlignment.center,
                     onPressed: _isLoading ? null : _signInWithApple,
                     style: apple.SignInWithAppleButtonStyle.black,
                     text: _isCreating ? 'Appleで登録' : 'Appleでログイン',
