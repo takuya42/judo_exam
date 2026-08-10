@@ -5,7 +5,7 @@ import '../../settings/application/settings_providers.dart';
 import '../domain/question.dart';
 import '../domain/question_category.dart';
 import '../domain/question_subcategory.dart';
-import 'question_list_screen.dart';
+import 'question_exam_screen.dart';
 
 class SubcategorySelectionScreen extends ConsumerWidget {
   const SubcategorySelectionScreen({
@@ -42,7 +42,7 @@ class SubcategorySelectionScreen extends ConsumerWidget {
                   children: [
                     Text('項目を選択', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
                     const SizedBox(height: 6),
-                    Text('学習する項目を選んで、問題一覧へ進みましょう。', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                    Text('学習する項目を選んで、問題演習を始めましょう。', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
                   ],
                 ),
               );
@@ -66,7 +66,7 @@ class SubcategorySelectionScreen extends ConsumerWidget {
               progress: progress,
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute<void>(
-                  builder: (_) => QuestionListScreen(
+                  builder: (_) => QuestionExamScreen(
                     questions: filtered,
                     title: subcategory.label,
                   ),
