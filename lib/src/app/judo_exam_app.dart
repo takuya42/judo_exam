@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'force_update_gate.dart';
 import 'theme/app_theme.dart';
 import '../features/navigation/presentation/root_navigation.dart';
+import '../features/premium/application/premium_providers.dart';
 import '../features/settings/application/settings_providers.dart';
 
 class JudoExamApp extends ConsumerWidget {
@@ -12,6 +13,8 @@ class JudoExamApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final themeMode = ref.watch(appSettingsControllerProvider);
+    // Start listening for purchases and restore the non-consumable entitlement.
+    ref.watch(premiumControllerProvider);
 
     return MaterialApp(
       title: '柔道整復師国試対策',

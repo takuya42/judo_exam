@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../auth/application/auth_providers.dart';
 import '../../auth/presentation/email_login_screen.dart';
 import '../../navigation/application/navigation_provider.dart';
+import '../../premium/application/premium_providers.dart';
 import '../../premium/presentation/premium_screen.dart';
 import '../../questions/application/question_providers.dart';
 import '../application/settings_providers.dart';
@@ -143,7 +144,7 @@ class _AccountSection extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authStateProvider).valueOrNull;
-    final profile = ref.watch(userProfileProvider).valueOrNull;
+    final membershipLabel = ref.watch(premiumMembershipLabelProvider);
     if (user == null) {
       return _SettingsSection(
         title: 'アカウント',
@@ -174,7 +175,7 @@ class _AccountSection extends ConsumerWidget {
         _SettingsTile(
           icon: Icons.person_outline_rounded,
           title: user.displayName?.isNotEmpty == true ? user.displayName! : 'ユーザー名未設定',
-          subtitle: '${user.email ?? 'メールアドレス未設定'} ・ ${profile?.isPremium == true ? 'プレミアム会員' : '無料会員'}',
+          subtitle: '${user.email ?? 'メールアドレス未設定'} ・ $membershipLabel',
           trailing: const SizedBox.shrink(),
         ),
         _SettingsTile(
