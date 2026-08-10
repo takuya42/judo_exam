@@ -129,7 +129,7 @@ class GoogleSheetService {
       return false;
     }
 
-    const expectedHeaders = <String>[
+    const legacyHeaders = <String>[
       'id',
       'category',
       'question',
@@ -140,14 +140,24 @@ class GoogleSheetService {
       'answer',
       'explanation',
     ];
+    const subcategoryHeaders = <String>[
+      'id',
+      'category',
+      'subcategory',
+      'question',
+      'choice1',
+      'choice2',
+      'choice3',
+      'choice4',
+      'answer',
+      'explanation',
+    ];
 
-    for (var i = 0; i < expectedHeaders.length; i++) {
-      if (values[i].toLowerCase() != expectedHeaders[i]) {
-        return false;
-      }
-    }
-
-    return true;
+    bool matches(List<String> headers) => values.length >= headers.length &&
+        headers.indexed.every(
+          (entry) => values[entry.$1].toLowerCase() == entry.$2,
+        );
+    return matches(legacyHeaders) || matches(subcategoryHeaders);
   }
 
   Question _questionFromValues(
@@ -163,7 +173,14 @@ class GoogleSheetService {
       valuesWithCategory[1] = sheetName;
     }
 
-    return Question.fromSheetRow(valuesWithCategory);
+    // New sheets include subcategory as the third column. Keep accepting the
+    // previous layout while other subjects migrate to the shared schema.
+    final hasSubcategory = valuesWithCategory.length >= 10 &&
+        (sheetName == '解剖学' || valuesWithCategory.length >= 12);
+    return Question.fromSheetRow(
+      valuesWithCategory,
+      hasSubcategory: hasSubcategory,
+    );
   }
 }
 

@@ -8,7 +8,9 @@ import '../../navigation/application/navigation_provider.dart';
 import '../../questions/application/question_providers.dart';
 import '../../questions/domain/question.dart';
 import '../../questions/domain/question_category.dart';
+import '../../questions/domain/question_subcategory.dart';
 import '../../questions/presentation/question_exam_screen.dart';
+import '../../questions/presentation/subcategory_selection_screen.dart';
 import '../../settings/application/settings_providers.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -121,10 +123,16 @@ class _HomeContent extends ConsumerWidget {
                     .toList(growable: false);
                 Navigator.of(context).push(
                   MaterialPageRoute<void>(
-                    builder: (_) => QuestionExamScreen(
-                      questions: categoryQuestions,
-                      title: category.label,
-                    ),
+                    builder: (_) => category == QuestionCategory.anatomy
+                        ? SubcategorySelectionScreen(
+                            category: category,
+                            questions: categoryQuestions,
+                            subcategories: anatomySubcategories,
+                          )
+                        : QuestionExamScreen(
+                            questions: categoryQuestions,
+                            title: category.label,
+                          ),
                   ),
                 );
               },
