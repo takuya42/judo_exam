@@ -51,7 +51,7 @@ void main() {
   });
 
   testWidgets(
-    '項目を選択すると同じsubcategoryの1問目から演習を開始する',
+    '項目を選択すると同じsubcategoryの問題をランダム順で直接開始する',
     (tester) async {
       SharedPreferences.setMockInitialValues({});
       final preferences = await SharedPreferences.getInstance();
@@ -60,6 +60,7 @@ void main() {
         _question(id: '2', subcategory: '骨格系', text: '骨格系の問題'),
         _question(id: '3', subcategory: '解剖学総論', text: '解剖学総論の2問目'),
       ];
+      var shuffleCallCount = 0;
 
       await tester.pumpWidget(
         ProviderScope(
@@ -69,6 +70,10 @@ void main() {
               category: QuestionCategory.anatomy,
               questions: questions,
               subcategories: [anatomySubcategories.first],
+              questionShuffler: (subcategoryQuestions) {
+                shuffleCallCount += 1;
+                return subcategoryQuestions.reversed.toList();
+              },
             ),
           ),
         ),
@@ -77,9 +82,17 @@ void main() {
       await tester.tap(find.text('解剖学総論'));
       await tester.pumpAndSettle();
 
-      expect(find.text('解剖学総論の1問目'), findsOneWidget);
+      expect(shuffleCallCount, 1);
+      expect(find.text('解剖学総論の2問目'), findsOneWidget);
       expect(find.text('骨格系の問題'), findsNothing);
       expect(find.text('1 / 2'), findsOneWidget);
+
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('解剖学総論'));
+      await tester.pumpAndSettle();
+
+      expect(shuffleCallCount, 2);
     },
   );
 
