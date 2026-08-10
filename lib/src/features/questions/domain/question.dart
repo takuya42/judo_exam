@@ -6,6 +6,7 @@ class Question {
   const Question({
     required this.id,
     required this.category,
+    this.subcategory = '',
     required this.questionText,
     required this.choices,
     required this.correctChoiceIndex,
@@ -20,6 +21,7 @@ class Question {
 
   final String id;
   final QuestionCategory category;
+  final String subcategory;
   final String questionText;
   final List<String> choices;
   final int correctChoiceIndex;
@@ -56,6 +58,7 @@ class Question {
     return Question(
       id: _stringValue(json['id']),
       category: QuestionCategory.fromSheetValue(_stringValue(json['category'])),
+      subcategory: _stringValue(json['subcategory']),
       questionText: _stringValue(json['questionText'] ?? json['question']),
       choices: choices.map(_stringValue).toList(growable: false),
       correctChoiceIndex: json.containsKey('correctChoiceIndex')
@@ -73,22 +76,31 @@ class Question {
     );
   }
 
-  factory Question.fromSheetRow(List<dynamic> values) {
-    if (values.length < 9) {
-      throw FormatException('問題行には9列以上必要です: $values');
+  factory Question.fromSheetRow(List<dynamic> values, {bool hasSubcategory = true}) {
+    final minimumLength = hasSubcategory ? 10 : 9;
+    if (values.length < minimumLength) {
+      throw FormatException('問題行には$minimumLength列以上必要です: $values');
     }
+
+    final questionIndex = hasSubcategory ? 3 : 2;
+    final choiceIndex = questionIndex + 1;
+    final answerIndex = choiceIndex + 4;
+    final explanationIndex = answerIndex + 1;
 
     return Question(
       id: _stringValue(values[0]),
       category: QuestionCategory.fromSheetValue(_stringValue(values[1])),
-      questionText: _stringValue(values[2]),
-      choices: values.sublist(3, 7).map(_stringValue).toList(growable: false),
-      correctChoiceIndex: parseAnswerIndex(values[7]),
-      explanation: _stringValue(values[8]),
-      isPremium: values.length > 9
-          ? _boolValue(values[9], defaultValue: true)
+      subcategory: hasSubcategory ? _stringValue(values[2]) : '',
+      questionText: _stringValue(values[questionIndex]),
+      choices: values.sublist(choiceIndex, choiceIndex + 4).map(_stringValue).toList(growable: false),
+      correctChoiceIndex: parseAnswerIndex(values[answerIndex]),
+      explanation: _stringValue(values[explanationIndex]),
+      isPremium: values.length > explanationIndex + 1
+          ? _boolValue(values[explanationIndex + 1], defaultValue: true)
           : true,
-      year: values.length > 10 ? _optionalIntValue(values[10]) : null,
+      year: values.length > explanationIndex + 2
+          ? _optionalIntValue(values[explanationIndex + 2])
+          : null,
     );
   }
 
@@ -161,6 +173,7 @@ class Question {
   Question copyWith({
     String? id,
     QuestionCategory? category,
+    String? subcategory,
     String? questionText,
     List<String>? choices,
     int? correctChoiceIndex,
@@ -171,6 +184,7 @@ class Question {
     return Question(
       id: id ?? this.id,
       category: category ?? this.category,
+      subcategory: subcategory ?? this.subcategory,
       questionText: questionText ?? this.questionText,
       choices: choices ?? this.choices,
       correctChoiceIndex: correctChoiceIndex ?? this.correctChoiceIndex,

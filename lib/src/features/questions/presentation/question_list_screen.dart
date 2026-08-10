@@ -2,17 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../application/question_providers.dart';
+import '../domain/question.dart';
 import 'question_exam_screen.dart';
 
 class QuestionListScreen extends ConsumerWidget {
-  const QuestionListScreen({super.key});
+  const QuestionListScreen({super.key, this.questions, this.title = '問題'});
+
+  final List<Question>? questions;
+  final String title;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final questionsAsync = ref.watch(questionsProvider);
+    final questionsAsync = questions == null
+        ? ref.watch(questionsProvider)
+        : AsyncValue<List<Question>>.data(questions!);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('問題')),
+      appBar: AppBar(title: Text(title)),
       body: questionsAsync.when(
         loading: () => const _LoadingQuestions(),
         error: (error, _) => _QuestionLoadError(error: error),
@@ -39,7 +45,7 @@ class QuestionListScreen extends ConsumerWidget {
                     MaterialPageRoute<void>(
                       builder: (_) => QuestionExamScreen(
                         questions: [question],
-                        title: question.category.label,
+                        title: title,
                       ),
                     ),
                   ),
