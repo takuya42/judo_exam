@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../auth/application/auth_providers.dart';
 import '../../auth/presentation/auth_dialogs.dart';
+import '../../premium/application/premium_providers.dart';
 import '../../settings/application/settings_providers.dart';
 import '../domain/question.dart';
 
@@ -42,7 +43,8 @@ class _QuestionExamScreenState extends ConsumerState<QuestionExamScreen> {
     final question = _currentQuestion;
     if (question == null) return;
 
-    if (!await ref.read(authControllerProvider).canAnswer()) {
+    if (!ref.read(isPremiumProvider) &&
+        !await ref.read(authControllerProvider).canAnswer()) {
       if (mounted) await showFreeLimitDialog(context);
       return;
     }
