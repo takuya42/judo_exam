@@ -7,17 +7,24 @@ import '../domain/question_category.dart';
 import '../domain/question_subcategory.dart';
 import 'question_exam_screen.dart';
 
+typedef QuestionShuffler = List<Question> Function(List<Question> questions);
+
+List<Question> _shuffleQuestions(List<Question> questions) =>
+    List<Question>.of(questions)..shuffle();
+
 class SubcategorySelectionScreen extends ConsumerWidget {
   const SubcategorySelectionScreen({
     super.key,
     required this.category,
     required this.questions,
     required this.subcategories,
+    this.questionShuffler = _shuffleQuestions,
   });
 
   final QuestionCategory category;
   final List<Question> questions;
   final List<QuestionSubcategory> subcategories;
+  final QuestionShuffler questionShuffler;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -64,14 +71,17 @@ class SubcategorySelectionScreen extends ConsumerWidget {
               questionCount: filtered.length,
               learnedCount: learnedIds.length,
               progress: progress,
-              onTap: () => Navigator.of(context).push(
-                MaterialPageRoute<void>(
-                  builder: (_) => QuestionExamScreen(
-                    questions: filtered,
-                    title: subcategory.label,
+              onTap: () {
+                final shuffled = questionShuffler(filtered);
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => QuestionExamScreen(
+                      questions: shuffled,
+                      title: subcategory.label,
+                    ),
                   ),
-                ),
-              ),
+                );
+              },
             );
           },
         ),
