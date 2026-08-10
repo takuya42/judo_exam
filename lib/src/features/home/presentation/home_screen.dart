@@ -92,10 +92,9 @@ class _HomeContent extends ConsumerWidget {
           correctStreak: learningSummary.correctStreak,
         ),
         const SizedBox(height: 24),
-        _SectionHeader(
+        const _SectionHeader(
           icon: Icons.local_hospital_rounded,
           title: 'カテゴリ別学習',
-          subtitle: 'Google Sheetsから取得した問題を科目別に集計',
         ),
         const SizedBox(height: 12),
         GridView.builder(
@@ -556,12 +555,12 @@ class _SectionHeader extends StatelessWidget {
   const _SectionHeader({
     required this.icon,
     required this.title,
-    required this.subtitle,
+    this.subtitle,
   });
 
   final IconData icon;
   final String title;
-  final String subtitle;
+  final String? subtitle;
 
   @override
   Widget build(BuildContext context) {
@@ -580,13 +579,15 @@ class _SectionHeader extends StatelessWidget {
                   fontWeight: FontWeight.w800,
                 ),
               ),
-              const SizedBox(height: 2),
-              Text(
-                subtitle,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+              if (subtitle case final subtitle?) ...[
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                 ),
-              ),
+              ],
             ],
           ),
         ),
