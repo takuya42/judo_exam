@@ -122,11 +122,11 @@ class _HomeContent extends ConsumerWidget {
                     .toList(growable: false);
                 Navigator.of(context).push(
                   MaterialPageRoute<void>(
-                    builder: (_) => category == QuestionCategory.anatomy
+                    builder: (_) => subcategoriesByCategory.containsKey(category)
                         ? SubcategorySelectionScreen(
                             category: category,
                             questions: categoryQuestions,
-                            subcategories: anatomySubcategories,
+                            subcategories: subcategoriesByCategory[category]!,
                           )
                         : QuestionExamScreen(
                             questions: categoryQuestions,
