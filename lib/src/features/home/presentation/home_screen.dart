@@ -109,6 +109,7 @@ class _HomeContent extends ConsumerWidget {
           ),
           itemBuilder: (context, index) {
             final category = QuestionCategory.values[index];
+            final subcategories = subcategoriesByCategory[category];
             return _CategoryCard(
               category: category,
               questionCount: categoryCounts[category] ?? 0,
@@ -122,11 +123,11 @@ class _HomeContent extends ConsumerWidget {
                     .toList(growable: false);
                 Navigator.of(context).push(
                   MaterialPageRoute<void>(
-                    builder: (_) => subcategoriesByCategory.containsKey(category)
+                    builder: (_) => subcategories != null
                         ? SubcategorySelectionScreen(
                             category: category,
                             questions: categoryQuestions,
-                            subcategories: subcategoriesByCategory[category]!,
+                            subcategories: subcategories,
                           )
                         : QuestionExamScreen(
                             questions: categoryQuestions,

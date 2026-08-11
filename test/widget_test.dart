@@ -66,6 +66,17 @@ void main() {
     );
   });
 
+  test('解剖学と生理学は共通の項目選択画面設定に登録されている', () {
+    expect(
+      subcategoriesByCategory[QuestionCategory.anatomy],
+      anatomySubcategories,
+    );
+    expect(
+      subcategoriesByCategory[QuestionCategory.physiology],
+      physiologySubcategories,
+    );
+  });
+
   test('生理学のスプレッドシート行からsubcategoryを読み込む', () {
     final question = Question.fromSheetRow(const [
       'P-1',
