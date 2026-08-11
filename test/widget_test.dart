@@ -69,6 +69,61 @@ void main() {
     expect(kinesiology.year, 2026);
   });
 
+  test('不正なanswerではシート行番号・id・subcategory・実値を表示する', () async {
+    final service = GoogleSheetService(
+      client: MockClient((request) async {
+        final sheetName = request.url.queryParameters['sheet']!;
+        final values = sheetName == '生理学'
+            ? [
+                'P-ERROR',
+                '生理学',
+                '血液・循環',
+                '問題文',
+                '選択肢1',
+                '選択肢2',
+                '選択肢3',
+                '選択肢4',
+                '正解は1',
+                '解説',
+              ]
+            : [
+                '$sheetName-1',
+                sheetName,
+                '問題文',
+                '選択肢1',
+                '選択肢2',
+                '選択肢3',
+                '選択肢4',
+                '1',
+                '解説',
+              ];
+        final cells = values.map((value) => '{"v":"$value"}').join(',');
+        return http.Response(
+          'google.visualization.Query.setResponse('
+          '{"table":{"rows":[{"c":[$cells]}]}});',
+          200,
+        );
+      }),
+    );
+
+    await expectLater(
+      service.loadQuestions(),
+      throwsA(
+        isA<GoogleSheetException>().having(
+          (error) => error.message,
+          'message',
+          allOf(
+            contains('行番号: 2'),
+            contains('id: P-ERROR'),
+            contains('subcategory: 血液・循環'),
+            contains('answer: 正解は1'),
+            contains('answer は数値である必要があります'),
+          ),
+        ),
+      ),
+    );
+  });
+
   test('スプレッドシート行からsubcategoryを読み込む', () {
     final question = Question.fromSheetRow(const [
       'A-1',
