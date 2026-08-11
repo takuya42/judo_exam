@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'question_category.dart';
+
 /// Presentation metadata for a question subcategory.
 ///
 /// Keeping this separate from [Question] makes the selection UI reusable as
@@ -27,3 +29,20 @@ const anatomySubcategories = <QuestionSubcategory>[
   QuestionSubcategory(label: '内分泌系', icon: Icons.science_rounded),
   QuestionSubcategory(label: '感覚器', icon: Icons.visibility_rounded),
 ];
+
+const physiologySubcategories = <QuestionSubcategory>[
+  QuestionSubcategory(label: '生理学総論', icon: Icons.monitor_heart_rounded),
+  QuestionSubcategory(label: '血液・循環', icon: Icons.favorite_rounded),
+  QuestionSubcategory(label: '呼吸', icon: Icons.air_rounded),
+  QuestionSubcategory(label: '消化・代謝', icon: Icons.restaurant_rounded),
+  QuestionSubcategory(label: '排泄・体温', icon: Icons.thermostat_rounded),
+  QuestionSubcategory(label: '内分泌・生殖', icon: Icons.science_rounded),
+  QuestionSubcategory(label: '神経・感覚', icon: Icons.account_tree_rounded),
+  QuestionSubcategory(label: '筋', icon: Icons.fitness_center_rounded),
+];
+
+/// Ordered subcategory metadata for subjects that support item-based study.
+const subcategoriesByCategory = <QuestionCategory, List<QuestionSubcategory>>{
+  QuestionCategory.anatomy: anatomySubcategories,
+  QuestionCategory.physiology: physiologySubcategories,
+};

@@ -176,7 +176,9 @@ class GoogleSheetService {
     // New sheets include subcategory as the third column. Keep accepting the
     // previous layout while other subjects migrate to the shared schema.
     final hasSubcategory = valuesWithCategory.length >= 10 &&
-        (sheetName == '解剖学' || valuesWithCategory.length >= 12);
+        (sheetName == '解剖学' ||
+            sheetName == '生理学' ||
+            valuesWithCategory.length >= 12);
     return Question.fromSheetRow(
       valuesWithCategory,
       hasSubcategory: hasSubcategory,
