@@ -33,6 +33,10 @@ class GoogleSheetService {
     '関係法規',
   ];
 
+  /// Sheets that use the shared ten-column layout with `subcategory` in the
+  /// third column. Subjects not listed here continue to use the legacy layout.
+  static const Set<String> _subcategorySheetNames = <String>{'解剖学', '生理学'};
+
   Uri _sheetJsonUri(String sheetName) => Uri.https(
     'docs.google.com',
     '/spreadsheets/d/$spreadsheetId/gviz/tq',
@@ -173,12 +177,10 @@ class GoogleSheetService {
       valuesWithCategory[1] = sheetName;
     }
 
-    // New sheets include subcategory as the third column. Keep accepting the
-    // previous layout while other subjects migrate to the shared schema.
-    final hasSubcategory = valuesWithCategory.length >= 10 &&
-        (sheetName == '解剖学' ||
-            sheetName == '生理学' ||
-            valuesWithCategory.length >= 12);
+    // Only migrated sheets interpret the third column as a subcategory.
+    // Keeping this decision independent of row length prevents optional
+    // columns in a legacy sheet from shifting question and answer fields.
+    final hasSubcategory = _subcategorySheetNames.contains(sheetName);
     return Question.fromSheetRow(
       valuesWithCategory,
       hasSubcategory: hasSubcategory,

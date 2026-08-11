@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
+import 'package:judo_exam/services/google_sheet_service.dart';
 import 'package:judo_exam/src/features/questions/domain/question.dart';
 import 'package:judo_exam/src/features/questions/domain/question_category.dart';
 import 'package:judo_exam/src/features/questions/domain/question_subcategory.dart';
@@ -9,6 +12,63 @@ import 'package:judo_exam/src/features/settings/application/settings_providers.d
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  test('Google Sheetsは解剖学と生理学だけを共通subcategory形式で読み込む', () async {
+    final service = GoogleSheetService(
+      client: MockClient((request) async {
+        final sheetName = request.url.queryParameters['sheet']!;
+        final isMigrated = sheetName == '解剖学' || sheetName == '生理学';
+        final values = isMigrated
+            ? [
+                '$sheetName-1',
+                sheetName,
+                sheetName == '生理学' ? '血液・循環' : '骨格系',
+                '$sheetNameの問題',
+                '選択肢1',
+                '選択肢2',
+                '選択肢3',
+                '選択肢4',
+                '1',
+                '解説',
+              ]
+            : [
+                '$sheetName-1',
+                sheetName,
+                '$sheetNameの問題',
+                '選択肢1',
+                '選択肢2',
+                '選択肢3',
+                '選択肢4',
+                '1',
+                '解説',
+                'false',
+                '2026',
+                '旧形式の追加列',
+              ];
+        final cells = values.map((value) => '{"v":"$value"}').join(',');
+        return http.Response(
+          'google.visualization.Query.setResponse('
+          '{"table":{"rows":[{"c":[$cells]}]}});',
+          200,
+        );
+      }),
+    );
+
+    final questions = await service.loadQuestions();
+    final physiology = questions.singleWhere(
+      (question) => question.category == QuestionCategory.physiology,
+    );
+    final kinesiology = questions.singleWhere(
+      (question) => question.category == QuestionCategory.kinesiology,
+    );
+
+    expect(physiology.subcategory, '血液・循環');
+    expect(physiology.questionText, '生理学の問題');
+    expect(kinesiology.subcategory, isEmpty);
+    expect(kinesiology.questionText, '運動学の問題');
+    expect(kinesiology.isPremium, isFalse);
+    expect(kinesiology.year, 2026);
+  });
+
   test('スプレッドシート行からsubcategoryを読み込む', () {
     final question = Question.fromSheetRow(const [
       'A-1',
