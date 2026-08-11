@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter/foundation.dart';
 
 import '../../auth/application/auth_providers.dart';
 import '../../auth/presentation/email_login_screen.dart';
@@ -165,6 +166,24 @@ class _AccountSection extends ConsumerWidget {
             icon: Icons.mail_outline_rounded,
             title: 'メールアドレスでログイン',
             onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const EmailLoginScreen())),
+          ),
+          _SettingsTile(
+            icon: Icons.apple,
+            title: 'Appleでログイン',
+            onTap: () async {
+              try {
+                await ref.read(authControllerProvider).signInWithApple();
+              } on Exception catch (error) {
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      error is AuthFailure ? error.message : error.toString(),
+                    ),
+                  ),
+                );
+              }
+            },
           ),
         ],
       );

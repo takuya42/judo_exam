@@ -10,14 +10,16 @@ class PremiumScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final premium = ref.watch(premiumControllerProvider);
     final isPremium = ref.watch(isPremiumProvider);
-    ref.listen<int>(
+
+    ref.listen(
       premiumControllerProvider.select((state) => state.messageId),
-      (previous, next) {
+          (previous, next) {
         final message = ref.read(premiumControllerProvider).message;
+
         if (next != previous && message != null) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text(message)));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(message)),
+          );
         }
       },
     );
@@ -29,11 +31,18 @@ class PremiumScreen extends ConsumerWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.verified_rounded, color: Color(0xFF008765), size: 52),
+              Icon(
+                Icons.verified_rounded,
+                color: Color(0xFF008765),
+                size: 52,
+              ),
               SizedBox(height: 12),
               Text(
                 '購入済み',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
               SizedBox(height: 6),
               Text('買い切り版を利用中です'),
@@ -51,6 +60,7 @@ class PremiumScreen extends ConsumerWidget {
       '正解率分析',
       '今後追加される問題も利用可能',
     ];
+
     return Scaffold(
       backgroundColor: const Color(0xFFF3FBF7),
       appBar: AppBar(title: const Text('買い切り版')),
@@ -61,7 +71,10 @@ class PremiumScreen extends ConsumerWidget {
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                colors: [Color(0xFF006C52), Color(0xFF1BAE7F)],
+                colors: [
+                  Color(0xFF006C52),
+                  Color(0xFF1BAE7F),
+                ],
               ),
               borderRadius: BorderRadius.circular(28),
               boxShadow: [
@@ -75,19 +88,25 @@ class PremiumScreen extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.workspace_premium_rounded, color: Colors.white, size: 44),
+                const Icon(
+                  Icons.workspace_premium_rounded,
+                  color: Colors.white,
+                  size: 44,
+                ),
                 const SizedBox(height: 18),
                 Text(
                   '買い切り版で全問題を学習',
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w900,
-                      ),
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
                 const SizedBox(height: 10),
                 Text(
                   '国家試験対策を最後まで続けられるプレミアムプラン',
-                  style: TextStyle(color: Colors.white.withOpacity(0.9)),
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.9),
+                  ),
                 ),
               ],
             ),
@@ -97,7 +116,9 @@ class PremiumScreen extends ConsumerWidget {
             elevation: 0,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(24),
-              side: const BorderSide(color: Color(0xFFD3EDE2)),
+              side: const BorderSide(
+                color: Color(0xFFD3EDE2),
+              ),
             ),
             child: Padding(
               padding: const EdgeInsets.all(22),
@@ -111,16 +132,21 @@ class PremiumScreen extends ConsumerWidget {
                       ),
                       title: Text(
                         benefit,
-                        style: const TextStyle(fontWeight: FontWeight.w700),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
                   const Divider(height: 28),
                   Text(
                     premium.product?.price ?? '1,500円（税込）',
-                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                          fontWeight: FontWeight.w900,
-                          color: const Color(0xFF006C52),
-                        ),
+                    style: Theme.of(context)
+                        .textTheme
+                        .headlineMedium
+                        ?.copyWith(
+                      fontWeight: FontWeight.w900,
+                      color: const Color(0xFF006C52),
+                    ),
                   ),
                   const SizedBox(height: 14),
                   if (premium.isBusy) ...[
@@ -131,8 +157,8 @@ class PremiumScreen extends ConsumerWidget {
                     onPressed: premium.isBusy
                         ? null
                         : () => ref
-                            .read(premiumControllerProvider.notifier)
-                            .purchase(),
+                        .read(premiumControllerProvider.notifier)
+                        .purchase(),
                     icon: const Icon(Icons.lock_open_rounded),
                     label: const Text('買い切り版を購入'),
                   ),
@@ -140,8 +166,8 @@ class PremiumScreen extends ConsumerWidget {
                     onPressed: premium.isBusy
                         ? null
                         : () => ref
-                            .read(premiumControllerProvider.notifier)
-                            .restore(),
+                        .read(premiumControllerProvider.notifier)
+                        .restore(),
                     child: const Text('購入を復元'),
                   ),
                   const SizedBox(height: 8),
