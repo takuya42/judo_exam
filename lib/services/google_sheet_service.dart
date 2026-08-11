@@ -84,12 +84,39 @@ class GoogleSheetService {
       throw FormatException('rows が見つかりません。シート: $sheetName');
     }
 
-    return rows
-        .map(_valuesFromRow)
-        .where((values) => values.any((value) => value.isNotEmpty))
-        .where((values) => !_isHeaderRow(values))
-        .map((values) => _questionFromValues(values, sheetName: sheetName))
-        .toList(growable: false);
+    final questions = <Question>[];
+    for (final (rowIndex, row) in rows.indexed) {
+      final values = _valuesFromRow(row);
+      if (values.every((value) => value.isEmpty) || _isHeaderRow(values)) {
+        continue;
+      }
+
+      try {
+        questions.add(_questionFromValues(values, sheetName: sheetName));
+      } on FormatException catch (error) {
+        // Google Visualization returns the data rows after the header row, so
+        // its zero-based index maps to the spreadsheet row by adding two.
+        throw FormatException(
+          _rowErrorMessage(
+            values,
+            sheetName: sheetName,
+            rowNumber: rowIndex + 2,
+            detail: error.message,
+          ),
+        );
+      } on ArgumentError catch (error) {
+        throw FormatException(
+          _rowErrorMessage(
+            values,
+            sheetName: sheetName,
+            rowNumber: rowIndex + 2,
+            detail: error.message?.toString() ?? error.toString(),
+          ),
+        );
+      }
+    }
+
+    return List<Question>.unmodifiable(questions);
   }
 
   Map<String, dynamic> _decodeVisualizationJson(String responseBody) {
@@ -186,6 +213,27 @@ class GoogleSheetService {
       hasSubcategory: hasSubcategory,
     );
   }
+
+  String _rowErrorMessage(
+    List<String> values, {
+    required String sheetName,
+    required int rowNumber,
+    required String detail,
+  }) {
+    final hasSubcategory = _subcategorySheetNames.contains(sheetName);
+    final subcategory = hasSubcategory ? _valueAt(values, 2) : '';
+    final answer = _valueAt(values, hasSubcategory ? 8 : 7);
+
+    String display(String value) => value.isEmpty ? '<空>' : value;
+
+    return 'シート: $sheetName, 行番号: $rowNumber, '
+        'id: ${display(_valueAt(values, 0))}, '
+        'subcategory: ${display(subcategory)}, '
+        'answer: ${display(answer)} ($detail)';
+  }
+
+  String _valueAt(List<String> values, int index) =>
+      index < values.length ? values[index] : '';
 }
 
 class GoogleSheetException implements Exception {
