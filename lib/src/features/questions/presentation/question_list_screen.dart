@@ -9,10 +9,16 @@ import '../domain/question_category.dart';
 import 'question_exam_screen.dart';
 
 class QuestionListScreen extends ConsumerStatefulWidget {
-  const QuestionListScreen({super.key, this.questions, this.title = '問題'});
+  const QuestionListScreen({
+    super.key,
+    this.questions,
+    this.title = '問題',
+    this.requiredOnly = false,
+  });
 
   final List<Question>? questions;
   final String title;
+  final bool requiredOnly;
 
   @override
   ConsumerState<QuestionListScreen> createState() =>
@@ -39,7 +45,13 @@ class _QuestionListScreenState extends ConsumerState<QuestionListScreen> {
       body: questionsAsync.when(
         loading: () => const _LoadingQuestions(),
         error: (error, _) => _QuestionLoadError(error: error),
-        data: _buildQuestionList,
+        data: (questions) => _buildQuestionList(
+          widget.requiredOnly
+              ? questions
+                    .where((question) => question.isRequired)
+                    .toList(growable: false)
+              : questions,
+        ),
       ),
     );
   }

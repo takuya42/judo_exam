@@ -145,6 +145,42 @@ void main() {
     expect(question.correctChoiceIndex, 1);
   });
 
+  test('スプレッドシート行の追加列から必修問題フラグを読み込む', () {
+    final question = Question.fromSheetRow(const [
+      'A-REQUIRED',
+      '解剖学',
+      '骨格系',
+      '問題文',
+      '選択肢1',
+      '選択肢2',
+      '選択肢3',
+      '選択肢4',
+      '2',
+      '解説',
+      'false',
+      '2026',
+      'true',
+    ]);
+
+    expect(question.isPremium, isFalse);
+    expect(question.year, 2026);
+    expect(question.isRequired, isTrue);
+  });
+
+  test('isRequiredがない既存データは必修問題にしない', () {
+    final question = Question.fromJson({
+      'id': 'legacy',
+      'category': '運動学',
+      'question': '問題文',
+      'choices': ['1', '2', '3', '4'],
+      'answer': 1,
+      'explanation': '解説',
+      'isPremium': false,
+    });
+
+    expect(question.isRequired, isFalse);
+  });
+
   test('解剖学の項目は指定された順序で全13件ある', () {
     expect(
       anatomySubcategories.map((subcategory) => subcategory.label),
