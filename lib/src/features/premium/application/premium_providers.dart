@@ -2,12 +2,10 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:judo_exam/core/constants/iap_constants.dart';
 
 import '../../auth/application/auth_providers.dart';
-import '../../settings/application/settings_providers.dart';
 
 final inAppPurchaseProvider = Provider<InAppPurchase>((ref) => InAppPurchase.instance);
 
@@ -15,7 +13,6 @@ final premiumControllerProvider =
     StateNotifierProvider<PremiumController, PremiumState>((ref) {
   final controller = PremiumController(
     inAppPurchase: ref.watch(inAppPurchaseProvider),
-    preferences: ref.watch(sharedPreferencesProvider),
     syncAccount: (isPremium) =>
         ref.read(authControllerProvider).setPremium(isPremium),
   );
@@ -24,17 +21,21 @@ final premiumControllerProvider =
 });
 
 /// The single entitlement used by both feature gates and presentation.
+///
+/// Firestore's `users/{current uid}.isPremium` field is deliberately the only
+/// source of truth. [userProfileProvider] follows Firebase Auth changes and
+/// listens to that document, so entitlement changes are reflected in every
+/// consumer in real time.
 final isPremiumProvider = Provider<bool>(
-  (ref) => ref.watch(premiumControllerProvider.select((state) => state.isPremium)),
+  (ref) => ref.watch(userProfileProvider).valueOrNull?.isPremium == true,
 );
 
 final premiumMembershipLabelProvider = Provider<String>(
-  (ref) => ref.watch(isPremiumProvider) ? 'プレミアム利用中' : '無料会員',
+  (ref) => ref.watch(isPremiumProvider) ? 'プレミアム会員' : '無料会員',
 );
 
 class PremiumState {
   const PremiumState({
-    required this.isPremium,
     this.isLoading = true,
     this.isPurchasePending = false,
     this.product,
@@ -42,7 +43,6 @@ class PremiumState {
     this.messageId = 0,
   });
 
-  final bool isPremium;
   final bool isLoading;
   final bool isPurchasePending;
   final ProductDetails? product;
@@ -52,7 +52,6 @@ class PremiumState {
   bool get isBusy => isLoading || isPurchasePending;
 
   PremiumState copyWith({
-    bool? isPremium,
     bool? isLoading,
     bool? isPurchasePending,
     ProductDetails? product,
@@ -61,7 +60,6 @@ class PremiumState {
     int? messageId,
   }) =>
       PremiumState(
-        isPremium: isPremium ?? this.isPremium,
         isLoading: isLoading ?? this.isLoading,
         isPurchasePending: isPurchasePending ?? this.isPurchasePending,
         product: product ?? this.product,
@@ -73,17 +71,12 @@ class PremiumState {
 class PremiumController extends StateNotifier<PremiumState> {
   PremiumController({
     required InAppPurchase inAppPurchase,
-    required SharedPreferences preferences,
     required Future<void> Function(bool) syncAccount,
   })  : _inAppPurchase = inAppPurchase,
-        _preferences = preferences,
         _syncAccount = syncAccount,
-        super(PremiumState(isPremium: preferences.getBool(_premiumKey) == true));
-
-  static const _premiumKey = 'premium_entitlement';
+        super(const PremiumState());
 
   final InAppPurchase _inAppPurchase;
-  final SharedPreferences _preferences;
   final Future<void> Function(bool) _syncAccount;
   StreamSubscription<List<PurchaseDetails>>? _subscription;
 
@@ -173,13 +166,12 @@ class PremiumController extends StateNotifier<PremiumState> {
       }
       if (purchase.status == PurchaseStatus.purchased ||
           purchase.status == PurchaseStatus.restored) {
-        state = state.copyWith(isPremium: true, isPurchasePending: false);
-        await _preferences.setBool(_premiumKey, true);
+        state = state.copyWith(isPurchasePending: false);
         try {
           await _syncAccount(true);
         } catch (_) {
-          // The store entitlement is device-wide and remains valid even when
-          // there is no signed-in account or account syncing is unavailable.
+          // The purchase remains restorable if account syncing is temporarily
+          // unavailable. Firestore is never bypassed with a local entitlement.
         }
         _notify(purchase.status == PurchaseStatus.restored
             ? '購入を復元しました。'
