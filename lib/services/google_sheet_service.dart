@@ -22,6 +22,9 @@ class GoogleSheetService {
   static const String requiredQuestionsCsvUrl =
       'https://docs.google.com/spreadsheets/d/$spreadsheetId/'
       'gviz/tq?tqx=out:csv&gid=1870506905';
+  static const String publicHealthQuestionsCsvUrl =
+      'https://docs.google.com/spreadsheets/d/$spreadsheetId/'
+      'gviz/tq?tqx=out:csv&gid=1580177639';
 
   final http.Client _client;
 
@@ -55,6 +58,13 @@ class GoogleSheetService {
       for (final sheetName in sheetNames) {
         questions.addAll(await _loadQuestionsFromSheet(sheetName));
       }
+      questions.addAll(
+        await _loadQuestionsFromCsv(
+          publicHealthQuestionsCsvUrl,
+          sheetName: QuestionCategory.publicHealth.label,
+          category: QuestionCategory.publicHealth,
+        ),
+      );
 
       return List<Question>.unmodifiable(questions);
     } on GoogleSheetException {
@@ -267,6 +277,73 @@ class GoogleSheetService {
       }
     }
 
+    return List<Question>.unmodifiable(questions);
+  }
+
+  Future<List<Question>> _loadQuestionsFromCsv(
+    String csvUrl, {
+    required String sheetName,
+    required QuestionCategory category,
+  }) async {
+    final response = await _client.get(Uri.parse(csvUrl));
+    if (response.statusCode != 200) {
+      throw GoogleSheetException(
+        'Google Sheetsから問題を取得できませんでした。'
+        'シート: $sheetName, ステータスコード: ${response.statusCode}',
+      );
+    }
+
+    final body = utf8.decode(response.bodyBytes);
+    final normalizedBody = body.trimLeft().toLowerCase();
+    final contentType = response.headers['content-type']?.toLowerCase() ?? '';
+    if (contentType.contains('text/html') ||
+        normalizedBody.startsWith('<!doctype html') ||
+        normalizedBody.startsWith('<html')) {
+      throw GoogleSheetException(
+        'Google SheetsからCSVではなくHTMLが返されました。'
+        'シート: $sheetName, 公開設定またはgidを確認してください。',
+      );
+    }
+
+    final questions = <Question>[];
+    final rows = _parseCsv(body);
+    for (final (rowIndex, originalValues) in rows.indexed) {
+      final values = List<String>.of(originalValues);
+      if (values.isNotEmpty) {
+        values[0] = values[0].replaceFirst('\ufeff', '');
+      }
+      if (values.every((value) => value.isEmpty) || _isHeaderRow(values)) {
+        continue;
+      }
+
+      try {
+        if (values.length < 2) {
+          throw FormatException('問題行には9列以上必要です: $values');
+        }
+        // This endpoint is dedicated to public-health questions. Do not let a
+        // missing or accidentally copied category cell classify them elsewhere.
+        values[1] = category.label;
+        questions.add(_questionFromValues(values, sheetName: sheetName));
+      } on FormatException catch (error) {
+        throw FormatException(
+          _rowErrorMessage(
+            values,
+            sheetName: sheetName,
+            rowNumber: rowIndex + 1,
+            detail: error.message,
+          ),
+        );
+      } on ArgumentError catch (error) {
+        throw FormatException(
+          _rowErrorMessage(
+            values,
+            sheetName: sheetName,
+            rowNumber: rowIndex + 1,
+            detail: error.message?.toString() ?? error.toString(),
+          ),
+        );
+      }
+    }
     return List<Question>.unmodifiable(questions);
   }
 
