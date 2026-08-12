@@ -80,12 +80,6 @@ class _QuestionListScreenState extends ConsumerState<QuestionListScreen> {
 
     return Column(
       children: [
-        if (!ref.watch(isPremiumProvider))
-          _DailyFreeAnswerCount(
-            answeredCount: ref
-                .watch(dailyAnswerLimitControllerProvider)
-                .answeredCount,
-          ),
         _QuestionFilters(
           selectedCategory: _selectedCategory,
           selectedSubcategory: _selectedSubcategory,
@@ -100,6 +94,12 @@ class _QuestionListScreenState extends ConsumerState<QuestionListScreen> {
             setState(() => _selectedSubcategory = subcategory);
           },
         ),
+        if (!ref.watch(isPremiumProvider))
+          _DailyFreeAnswerCount(
+            answeredCount: ref
+                .watch(dailyAnswerLimitControllerProvider)
+                .answeredCount,
+          ),
         Expanded(
           child: filteredQuestions.isEmpty
               ? const _EmptyQuestionList()
@@ -135,10 +135,14 @@ class _DailyFreeAnswerCount extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final progress = (answeredCount / freeDailyAnswerLimit)
+        .clamp(0.0, 1.0)
+        .toDouble();
+
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      margin: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.primaryContainer,
         borderRadius: BorderRadius.circular(16),
@@ -146,12 +150,27 @@ class _DailyFreeAnswerCount extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('本日の無料問題', style: Theme.of(context).textTheme.labelLarge),
-          const SizedBox(height: 2),
-          Text(
-            '$answeredCount / $freeDailyAnswerLimit問',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.w800,
+          Row(
+            children: [
+              Text('本日の回答数', style: Theme.of(context).textTheme.labelLarge),
+              const Spacer(),
+              Text(
+                '$answeredCount / $freeDailyAnswerLimit問',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: LinearProgressIndicator(
+              value: progress,
+              minHeight: 5,
+              backgroundColor: Theme.of(
+                context,
+              ).colorScheme.surfaceContainerHighest,
             ),
           ),
         ],
@@ -303,34 +322,12 @@ class _QuestionCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    question.category.label,
-                    style: theme.textTheme.labelLarge?.copyWith(
-                      color: colors.primary,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 9,
-                      vertical: 3,
-                    ),
-                    decoration: BoxDecoration(
-                      color: colors.secondaryContainer,
-                      borderRadius: BorderRadius.circular(999),
-                    ),
-                    child: Text(
-                      question.isPremium ? '有料' : '無料',
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: colors.onSecondaryContainer,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ],
+              Text(
+                question.category.label,
+                style: theme.textTheme.labelLarge?.copyWith(
+                  color: colors.primary,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               const SizedBox(height: 8),
               Row(
