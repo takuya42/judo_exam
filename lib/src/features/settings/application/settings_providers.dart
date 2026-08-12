@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -34,6 +35,100 @@ final learningDataControllerProvider =
     StateNotifierProvider<LearningDataController, LearningSummary>((ref) {
   return LearningDataController(ref.watch(sharedPreferencesProvider));
 });
+
+const freeDailyAnswerLimit = 20;
+
+final dailyAnswerLimitControllerProvider =
+    StateNotifierProvider<DailyAnswerLimitController, DailyAnswerLimitState>((
+      ref,
+    ) {
+  return DailyAnswerLimitController(ref.watch(sharedPreferencesProvider));
+});
+
+/// Persists the set of free-plan questions answered on the current local day.
+///
+/// A set is used deliberately: opening a question never changes this state and
+/// answering the same question again does not consume another free answer.
+class DailyAnswerLimitController extends StateNotifier<DailyAnswerLimitState> {
+  DailyAnswerLimitController(this._preferences, {DateTime Function()? now})
+      : _now = now ?? DateTime.now,
+        super(_readState(_preferences, (now ?? DateTime.now)())) {
+    unawaited(_persist(state));
+  }
+
+  static const _dateKey = 'free_answer_date';
+  static const _questionIdsKey = 'free_answer_question_ids';
+
+  final SharedPreferences _preferences;
+  final DateTime Function() _now;
+
+  /// Returns false without recording when a free user has used today's quota.
+  Future<bool> tryRecordAnswer({
+    required String questionId,
+    required bool isPremium,
+  }) async {
+    _rollOverIfNeeded();
+    if (isPremium) return true;
+    if (state.questionIds.contains(questionId)) return true;
+    if (state.answeredCount >= freeDailyAnswerLimit) return false;
+
+    state = DailyAnswerLimitState(
+      date: state.date,
+      questionIds: {...state.questionIds, questionId},
+    );
+    await _persist(state);
+    return true;
+  }
+
+  void refreshDate() => _rollOverIfNeeded();
+
+  void _rollOverIfNeeded() {
+    final today = _dateString(_now());
+    if (state.date == today) return;
+    state = DailyAnswerLimitState(date: today);
+    unawaited(_persist(state));
+  }
+
+  Future<void> _persist(DailyAnswerLimitState value) async {
+    await Future.wait([
+      _preferences.setString(_dateKey, value.date),
+      _preferences.setStringList(_questionIdsKey, value.questionIds.toList()),
+    ]);
+  }
+
+  static DailyAnswerLimitState _readState(
+    SharedPreferences preferences,
+    DateTime now,
+  ) {
+    final today = _dateString(now);
+    if (preferences.getString(_dateKey) != today) {
+      return DailyAnswerLimitState(date: today);
+    }
+    return DailyAnswerLimitState(
+      date: today,
+      questionIds:
+          (preferences.getStringList(_questionIdsKey) ?? const <String>[])
+              .toSet(),
+    );
+  }
+}
+
+@immutable
+class DailyAnswerLimitState {
+  const DailyAnswerLimitState({
+    required this.date,
+    this.questionIds = const <String>{},
+  });
+
+  final String date;
+  final Set<String> questionIds;
+  int get answeredCount => questionIds.length;
+}
+
+String _dateString(DateTime date) =>
+    '${date.year.toString().padLeft(4, '0')}-'
+    '${date.month.toString().padLeft(2, '0')}-'
+    '${date.day.toString().padLeft(2, '0')}';
 
 class LearningDataController extends StateNotifier<LearningSummary> {
   LearningDataController(this._preferences)

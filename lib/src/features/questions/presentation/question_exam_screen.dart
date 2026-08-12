@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../auth/application/auth_providers.dart';
 import '../../auth/presentation/auth_dialogs.dart';
 import '../../premium/application/premium_providers.dart';
 import '../../settings/application/settings_providers.dart';
@@ -25,6 +24,7 @@ class _QuestionExamScreenState extends ConsumerState<QuestionExamScreen> {
   int _currentIndex = 0;
   int? _selectedChoiceIndex;
   Question? _currentQuestion;
+  bool _isAnswering = false;
 
   @override
   void initState() {
@@ -38,23 +38,33 @@ class _QuestionExamScreenState extends ConsumerState<QuestionExamScreen> {
       widget.questions[index].shuffledChoices();
 
   Future<void> _answer(int choiceIndex) async {
-    if (_selectedChoiceIndex != null) return;
+    if (_selectedChoiceIndex != null || _isAnswering) return;
 
     final question = _currentQuestion;
     if (question == null) return;
+    _isAnswering = true;
 
-    if (!ref.read(isPremiumProvider) &&
-        !await ref.read(authControllerProvider).canAnswer()) {
-      if (mounted) await showFreeLimitDialog(context);
-      return;
+    try {
+      final canAnswer = await ref
+          .read(dailyAnswerLimitControllerProvider.notifier)
+          .tryRecordAnswer(
+            questionId: question.id,
+            isPremium: ref.read(isPremiumProvider),
+          );
+      if (!canAnswer) {
+        if (mounted) await showFreeLimitDialog(context);
+        return;
+      }
+
+      if (!mounted) return;
+      setState(() => _selectedChoiceIndex = choiceIndex);
+      await ref.read(learningDataControllerProvider.notifier).recordAnswer(
+            question: question,
+            isCorrect: question.isCorrect(choiceIndex),
+          );
+    } finally {
+      _isAnswering = false;
     }
-
-    setState(() => _selectedChoiceIndex = choiceIndex);
-    await ref.read(authControllerProvider).incrementAnswerCount();
-    await ref.read(learningDataControllerProvider.notifier).recordAnswer(
-          question: question,
-          isCorrect: question.isCorrect(choiceIndex),
-        );
   }
 
   void _nextQuestion() {

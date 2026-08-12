@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart' as apple;
 
-const freeAnswerLimit = 30;
 final firebaseAuthProvider = Provider<FirebaseAuth>((ref) => FirebaseAuth.instance);
 final firestoreProvider = Provider<FirebaseFirestore>((ref) => FirebaseFirestore.instance);
 final googleSignInProvider = Provider<GoogleSignIn>((ref) => GoogleSignIn());
@@ -198,23 +197,6 @@ class AuthController {
     if (user.providerData.any((info) => info.providerId == GoogleAuthProvider.PROVIDER_ID)) return 'google';
     if (user.providerData.any((info) => info.providerId == 'apple.com')) return 'apple';
     return 'email';
-  }
-
-  Future<bool> canAnswer() async {
-    final user = auth.currentUser;
-    if (user == null) return false;
-    final profile = await ensureUserDocument(user);
-    return profile?.isPremium == true || (profile?.answerCount ?? 0) < freeAnswerLimit;
-  }
-
-  Future<void> incrementAnswerCount() async {
-    final user = auth.currentUser;
-    if (user == null) return;
-    await ensureUserDocument(user);
-    await firestore.collection('users').doc(user.uid).set({
-      'answerCount': FieldValue.increment(1),
-      'updatedAt': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
   }
 
   Future<void> setPremium(bool value) async {

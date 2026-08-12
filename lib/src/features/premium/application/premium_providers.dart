@@ -29,7 +29,7 @@ final isPremiumProvider = Provider<bool>(
 );
 
 final premiumMembershipLabelProvider = Provider<String>(
-  (ref) => ref.watch(isPremiumProvider) ? 'Pro会員' : '無料会員',
+  (ref) => ref.watch(isPremiumProvider) ? 'プレミアム利用中' : '無料会員',
 );
 
 class PremiumState {

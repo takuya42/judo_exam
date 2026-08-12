@@ -26,7 +26,7 @@ class PremiumScreen extends ConsumerWidget {
 
     if (isPremium) {
       return Scaffold(
-        appBar: AppBar(title: const Text('買い切り版')),
+        appBar: AppBar(title: const Text('プレミアムプラン')),
         body: const Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -38,14 +38,14 @@ class PremiumScreen extends ConsumerWidget {
               ),
               SizedBox(height: 12),
               Text(
-                '購入済み',
+                'プレミアムプラン',
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w800,
                 ),
               ),
               SizedBox(height: 6),
-              Text('買い切り版を利用中です'),
+              Text('プレミアム利用中'),
             ],
           ),
         ),
@@ -63,7 +63,7 @@ class PremiumScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF3FBF7),
-      appBar: AppBar(title: const Text('買い切り版')),
+      appBar: AppBar(title: const Text('プレミアムプラン')),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
