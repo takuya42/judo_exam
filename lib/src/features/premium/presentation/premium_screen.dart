@@ -46,6 +46,8 @@ class PremiumScreen extends ConsumerWidget {
               ),
               SizedBox(height: 6),
               Text('プレミアム利用中'),
+              SizedBox(height: 4),
+              Text('回答数無制限'),
             ],
           ),
         ),
@@ -138,17 +140,18 @@ class PremiumScreen extends ConsumerWidget {
                       ),
                     ),
                   const Divider(height: 28),
-                  Text(
-                    premium.product?.price ?? '1,500円（税込）',
-                    style: Theme.of(context)
-                        .textTheme
-                        .headlineMedium
-                        ?.copyWith(
-                      fontWeight: FontWeight.w900,
-                      color: const Color(0xFF006C52),
+                  if (premium.product != null)
+                    Text(
+                      premium.product!.price,
+                      style: Theme.of(context)
+                          .textTheme
+                          .headlineMedium
+                          ?.copyWith(
+                        fontWeight: FontWeight.w900,
+                        color: const Color(0xFF006C52),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 14),
+                  if (premium.product != null) const SizedBox(height: 14),
                   if (premium.isBusy) ...[
                     const CircularProgressIndicator(),
                     const SizedBox(height: 14),
