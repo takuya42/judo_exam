@@ -84,7 +84,11 @@ class Question {
     );
   }
 
-  factory Question.fromSheetRow(List<dynamic> values, {bool hasSubcategory = true}) {
+  factory Question.fromSheetRow(
+    List<dynamic> values, {
+    bool hasSubcategory = true,
+    QuestionCategory Function(String value)? categoryParser,
+  }) {
     final minimumLength = hasSubcategory ? 10 : 9;
     if (values.length < minimumLength) {
       throw FormatException('問題行には$minimumLength列以上必要です: $values');
@@ -97,7 +101,9 @@ class Question {
 
     return Question(
       id: _stringValue(values[0]),
-      category: QuestionCategory.fromSheetValue(_stringValue(values[1])),
+      category: (categoryParser ?? QuestionCategory.fromSheetValue)(
+        _stringValue(values[1]),
+      ),
       subcategory: hasSubcategory ? _stringValue(values[2]) : '',
       questionText: _stringValue(values[questionIndex]),
       choices: values.sublist(choiceIndex, choiceIndex + 4).map(_stringValue).toList(growable: false),

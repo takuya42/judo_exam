@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 
 import '../src/features/questions/domain/question.dart';
+import '../src/features/questions/domain/question_category.dart';
 
 final googleSheetServiceProvider = Provider<GoogleSheetService>((ref) {
   final client = http.Client();
@@ -150,7 +151,11 @@ class GoogleSheetService {
         if (values.every((value) => value.trim().isEmpty)) continue;
         try {
           questions.add(
-            Question.fromSheetRow(values, hasSubcategory: false).copyWith(
+            Question.fromSheetRow(
+              values,
+              hasSubcategory: false,
+              categoryParser: QuestionCategory.fromRequiredSheetValue,
+            ).copyWith(
               isPremium: false,
               isRequired: true,
             ),
