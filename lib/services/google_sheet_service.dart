@@ -307,11 +307,11 @@ class GoogleSheetService {
 
     final questions = <Question>[];
     final rows = _parseCsv(body);
+    debugPrint('[$sheetName] CSVの行数: ${rows.length}');
+    final header = rows.isEmpty ? const <String>[] : _normalizedRow(rows.first);
+    debugPrint('[$sheetName] ヘッダー: $header');
     for (final (rowIndex, originalValues) in rows.indexed) {
-      final values = List<String>.of(originalValues);
-      if (values.isNotEmpty) {
-        values[0] = values[0].replaceFirst('\ufeff', '');
-      }
+      final values = _normalizedRow(originalValues);
       if (values.every((value) => value.isEmpty) || _isHeaderRow(values)) {
         continue;
       }
@@ -343,6 +343,15 @@ class GoogleSheetService {
           ),
         );
       }
+    }
+    debugPrint('[$sheetName] Questionへの変換成功件数: ${questions.length}');
+    if (questions.isNotEmpty) {
+      final first = questions.first;
+      debugPrint(
+        '[$sheetName] 最初の問題: id=${first.id}, '
+        'category=${first.category.label}, question=${first.questionText}, '
+        'correctAnswer=${first.correctChoiceIndex + 1}',
+      );
     }
     return List<Question>.unmodifiable(questions);
   }
@@ -399,6 +408,17 @@ class GoogleSheetService {
       'answer',
       'explanation',
     ];
+    const csvHeaders = <String>[
+      'id',
+      'category',
+      'question',
+      'choice1',
+      'choice2',
+      'choice3',
+      'choice4',
+      'correctanswer',
+      'explanation',
+    ];
     const subcategoryHeaders = <String>[
       'id',
       'category',
@@ -416,7 +436,17 @@ class GoogleSheetService {
         headers.indexed.every(
           (entry) => values[entry.$1].toLowerCase() == entry.$2,
         );
-    return matches(legacyHeaders) || matches(subcategoryHeaders);
+    return matches(legacyHeaders) ||
+        matches(csvHeaders) ||
+        matches(subcategoryHeaders);
+  }
+
+  List<String> _normalizedRow(List<String> values) {
+    final normalized = List<String>.of(values);
+    if (normalized.isNotEmpty) {
+      normalized[0] = normalized[0].replaceFirst('\ufeff', '').trim();
+    }
+    return normalized;
   }
 
   Question _questionFromValues(

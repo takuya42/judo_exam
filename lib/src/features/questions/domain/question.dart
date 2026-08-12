@@ -141,12 +141,14 @@ class Question {
       return value;
     }
     if (value is double) {
+      if (!value.isFinite || value != value.truncateToDouble()) {
+        throw FormatException('$fieldName は整数である必要があります: $value');
+      }
       return value.toInt();
     }
 
     final normalized = _stringValue(value);
-    final parsed =
-        int.tryParse(normalized) ?? double.tryParse(normalized)?.toInt();
+    final parsed = int.tryParse(normalized);
     if (parsed == null) {
       throw FormatException('$fieldName は数値である必要があります: $value');
     }
