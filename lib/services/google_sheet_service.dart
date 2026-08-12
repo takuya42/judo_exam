@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 
@@ -18,8 +19,9 @@ class GoogleSheetService {
   static const String spreadsheetId =
       '1Vd7dEb9iD1Gz3piWmdaRMdccCXRqQEjbE942XtAJERs';
   static const String requiredQuestionsCsvUrl =
-      'https://docs.google.com/spreadsheets/d/$spreadsheetId/'
-      'export?format=csv&gid=1870506905';
+      'https://docs.google.com/spreadsheets/d/e/'
+      '2PACX-1vRmPQkrUIF5M0dysEcyVY_Sijo8zJM3dlWETZDGdeF3_SxuaqXBaQfp8Jtzd0dBRcDDDds0AK7RQE-o7Q/'
+      'pub?gid=1870506905&single=true&output=csv';
 
   final http.Client _client;
 
@@ -67,50 +69,77 @@ class GoogleSheetService {
   }
 
   Future<String> fetchRequiredQuestionsCsv() async {
-    final response = await _client.get(Uri.parse(requiredQuestionsCsvUrl));
-    if (response.statusCode != 200) {
-      throw GoogleSheetException(
-        '必修問題を取得できませんでした。ステータスコード: ${response.statusCode}',
-      );
-    }
-    return utf8.decode(response.bodyBytes);
-  }
-
-  /// Parses the required-question CSV with the same [Question] sheet layout.
-  /// Quoted commas, quotes and embedded newlines are supported.
-  List<Question> parseRequiredQuestionsCsv(String source) {
-    final rows = _parseCsv(source);
-    if (rows.isEmpty) return const <Question>[];
-    final first = rows.first
-        .map((value) => value.replaceFirst('\ufeff', '').toLowerCase())
-        .toList();
-    if (rows.first.isNotEmpty) {
-      rows.first[0] = rows.first[0].replaceFirst('\ufeff', '');
-    }
-    final hasHeader = first.contains('id') &&
-        (first.contains('question') || first.contains('問題文'));
-    final hasSubcategory = hasHeader
-        ? first.contains('subcategory') || first.contains('サブカテゴリ')
-        : rows.first.length >= 10;
-    final questions = <Question>[];
-    for (final entry in rows.indexed) {
-      if (hasHeader && entry.$1 == 0) continue;
-      final values = entry.$2;
-      if (values.every((value) => value.trim().isEmpty)) continue;
-      try {
-        questions.add(
-          Question.fromSheetRow(
-            values,
-            hasSubcategory: hasSubcategory,
-          ).copyWith(isPremium: false, isRequired: true),
-        );
-      } on Object catch (error) {
+    try {
+      final response = await _client.get(Uri.parse(requiredQuestionsCsvUrl));
+      if (response.statusCode != 200) {
         throw GoogleSheetException(
-          '必修問題データの形式が不正です（${entry.$1 + 1}行目）: $error',
+          '必修問題を取得できませんでした。ステータスコード: ${response.statusCode}',
         );
       }
+      return utf8.decode(response.bodyBytes);
+    } on Object catch (error, stackTrace) {
+      debugPrint('必修問題CSVの取得に失敗しました: $error\n$stackTrace');
+      rethrow;
     }
-    return List<Question>.unmodifiable(questions);
+  }
+
+  Future<List<Question>> loadRequiredQuestions() async {
+    final csv = await fetchRequiredQuestionsCsv();
+    return parseRequiredQuestionsCsv(csv);
+  }
+
+  /// Parses the required-question CSV using the existing [Question] model.
+  /// Quoted commas, quotes and embedded newlines are supported.
+  List<Question> parseRequiredQuestionsCsv(String source) {
+    try {
+      final rows = _parseCsv(source);
+      if (rows.isEmpty) return const <Question>[];
+
+      const expectedHeader = <String>[
+        'id',
+        'category',
+        'question',
+        'choice1',
+        'choice2',
+        'choice3',
+        'choice4',
+        'correctAnswer',
+        'explanation',
+      ];
+      final header = List<String>.of(rows.first);
+      if (header.isNotEmpty) {
+        header[0] = header[0].replaceFirst('\ufeff', '');
+      }
+      if (header.length < expectedHeader.length ||
+          !expectedHeader.indexed.every(
+            (entry) => header[entry.$1].trim() == entry.$2,
+          )) {
+        throw GoogleSheetException('必修問題CSVのヘッダーが不正です: $header');
+      }
+
+      final questions = <Question>[];
+      for (final entry in rows.skip(1).indexed) {
+        final values = entry.$2;
+        if (values.every((value) => value.trim().isEmpty)) continue;
+        try {
+          questions.add(
+            Question.fromSheetRow(values, hasSubcategory: false).copyWith(
+              isPremium: false,
+              isRequired: true,
+            ),
+          );
+        } on Object catch (error) {
+          // Add two because [indexed] starts after the header row.
+          throw GoogleSheetException(
+            '必修問題データの形式が不正です（${entry.$1 + 2}行目）: $error',
+          );
+        }
+      }
+      return List<Question>.unmodifiable(questions);
+    } on Object catch (error, stackTrace) {
+      debugPrint('必修問題CSVのパースに失敗しました: $error\n$stackTrace');
+      rethrow;
+    }
   }
 
   List<List<String>> _parseCsv(String source) {
@@ -139,6 +168,9 @@ class GoogleSheetService {
       } else {
         field.write(character);
       }
+    }
+    if (quoted) {
+      throw const FormatException('CSVの引用符が閉じられていません。');
     }
     if (field.isNotEmpty || row.isNotEmpty) {
       row.add(field.toString().trim());
