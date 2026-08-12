@@ -1,7 +1,10 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:judo_exam/services/google_sheet_service.dart';
+import 'package:judo_exam/src/features/questions/application/question_providers.dart';
+import 'package:judo_exam/src/features/questions/domain/question.dart';
 import 'package:judo_exam/src/features/questions/domain/question_category.dart';
 
 void main() {
@@ -23,10 +26,12 @@ void main() {
       requestedUri.toString(),
       GoogleSheetService.requiredQuestionsCsvUrl,
     );
-    expect(requestedUri.path, contains('/spreadsheets/d/e/'));
+    expect(
+      requestedUri.path,
+      contains('/spreadsheets/d/${GoogleSheetService.spreadsheetId}/gviz/tq'),
+    );
     expect(requestedUri.queryParameters['gid'], '1870506905');
-    expect(requestedUri.queryParameters['single'], 'true');
-    expect(requestedUri.queryParameters['output'], 'csv');
+    expect(requestedUri.queryParameters['tqx'], 'out:csv');
   });
 
   test('ヘッダーと空行を除外し、CSVの必修問題をQuestionとして読み込む', () {
@@ -75,5 +80,96 @@ R-1,解剖学,"カンマ,を含む問題",選択肢1,選択肢2,選択肢3,選�
         ),
       ),
     );
+  });
+
+  test('HTMLの200レスポンスをCSVとして解析しない', () async {
+    final service = GoogleSheetService(
+      client: MockClient(
+        (_) async => http.Response(
+          '<!doctype html><html><body>login</body></html>',
+          200,
+          headers: {'content-type': 'text/html; charset=utf-8'},
+        ),
+      ),
+    );
+
+    await expectLater(
+      service.loadRequiredQuestions(),
+      throwsA(
+        isA<GoogleSheetException>().having(
+          (error) => error.message,
+          'message',
+          contains('HTML'),
+        ),
+      ),
+    );
+  });
+
+  test('UTF-8 BOMとCRLFを含むCSVを読み込む', () {
+    final service = GoogleSheetService();
+    final questions = service.parseRequiredQuestionsCsv(
+      '\ufeff$csvHeader\r\nR-2,生理学,問題,1,2,3,4,3,解説\r\n',
+    );
+
+    expect(questions, hasLength(1));
+    expect(questions.single.correctChoiceIndex, 2);
+  });
+
+  test('correctAnswerはStringと数値のどちらも変換できる', () {
+    List<dynamic> row(Object answer) => <dynamic>[
+      'R-3',
+      '解剖学',
+      '問題',
+      '選択肢1',
+      '選択肢2',
+      '選択肢3',
+      '選択肢4',
+      answer,
+      '解説',
+    ];
+
+    expect(
+      Question.fromSheetRow(
+        row('2'),
+        hasSubcategory: false,
+      ).correctChoiceIndex,
+      1,
+    );
+    expect(
+      Question.fromSheetRow(
+        row(2),
+        hasSubcategory: false,
+      ).correctChoiceIndex,
+      1,
+    );
+    expect(
+      Question.fromSheetRow(
+        row(2.0),
+        hasSubcategory: false,
+      ).correctChoiceIndex,
+      1,
+    );
+  });
+
+  test('必修問題の一覧が専用Providerまで渡る', () async {
+    final service = GoogleSheetService(
+      client: MockClient(
+        (_) async => http.Response(
+          '$csvHeader\nR-4,解剖学,問題,1,2,3,4,1,解説\n',
+          200,
+          headers: {'content-type': 'text/csv; charset=utf-8'},
+        ),
+      ),
+    );
+    final container = ProviderContainer(
+      overrides: [googleSheetServiceProvider.overrideWithValue(service)],
+    );
+    addTearDown(container.dispose);
+
+    final questions = await container.read(requiredQuestionsProvider.future);
+
+    expect(questions, hasLength(1));
+    expect(questions.single.id, 'R-4');
+    expect(questions.single.isRequired, isTrue);
   });
 }
