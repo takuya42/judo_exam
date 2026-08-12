@@ -13,10 +13,21 @@ import 'package:judo_exam/src/features/settings/application/settings_providers.d
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
-  test('Google Sheetsは解剖学と生理学だけを共通subcategory形式で読み込む', () async {
+  test('通常問題を各科目のGoogle Visualization形式で読み込む', () async {
     final service = GoogleSheetService(
       client: MockClient((request) async {
-        final sheetName = request.url.queryParameters['sheet']!;
+        final sheetName = request.url.queryParameters['sheet'] ??
+            QuestionCategory.publicHealth.label;
+        if (sheetName == QuestionCategory.publicHealth.label) {
+          expect(request.url.queryParameters['gid'], '1580177639');
+          expect(request.url.queryParameters['tqx'], 'out:csv');
+          return http.Response(
+            'id,category,question,choice1,choice2,choice3,choice4,answer,explanation\n'
+            '公衆衛生学-1,,公衆衛生学の問題,選択肢1,選択肢2,選択肢3,選択肢4,1,解説',
+            200,
+            headers: {'content-type': 'text/csv'},
+          );
+        }
         final isMigrated = sheetName == '解剖学' || sheetName == '生理学';
         final values = isMigrated
             ? [
@@ -68,12 +79,23 @@ void main() {
     expect(kinesiology.questionText, '運動学の問題');
     expect(kinesiology.isPremium, isFalse);
     expect(kinesiology.year, 2026);
+    final publicHealth = questions.singleWhere(
+      (question) => question.category == QuestionCategory.publicHealth,
+    );
+    expect(publicHealth.questionText, '公衆衛生学の問題');
+    expect(publicHealth.subcategory, isEmpty);
   });
 
   test('不正なanswerではシート行番号・id・subcategory・実値を表示する', () async {
     final service = GoogleSheetService(
       client: MockClient((request) async {
-        final sheetName = request.url.queryParameters['sheet']!;
+        final sheetName = request.url.queryParameters['sheet'];
+        if (sheetName == null) {
+          return http.Response(
+            'id,category,question,choice1,choice2,choice3,choice4,answer,explanation\n',
+            200,
+          );
+        }
         final values = sheetName == '生理学'
             ? [
                 'P-ERROR',
@@ -374,6 +396,12 @@ void main() {
         subcategory: '',
         text: '病理学の問題',
       ),
+      _question(
+        id: '5',
+        category: QuestionCategory.publicHealth,
+        subcategory: '',
+        text: '公衆衛生学の問題',
+      ),
     ];
 
     await tester.pumpWidget(
@@ -402,6 +430,12 @@ void main() {
 
     expect(find.byKey(const ValueKey('subcategory-filter')), findsNothing);
     expect(find.text('病理学の問題'), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(FilterChip, '公衆衛生学'));
+    await tester.pump();
+
+    expect(find.text('公衆衛生学の問題'), findsOneWidget);
+    expect(find.text('病理学の問題'), findsNothing);
   });
 }
 
