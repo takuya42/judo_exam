@@ -7,6 +7,7 @@ import 'package:judo_exam/services/google_sheet_service.dart';
 import 'package:judo_exam/src/features/questions/domain/question.dart';
 import 'package:judo_exam/src/features/questions/domain/question_category.dart';
 import 'package:judo_exam/src/features/questions/domain/question_subcategory.dart';
+import 'package:judo_exam/src/features/questions/presentation/question_list_screen.dart';
 import 'package:judo_exam/src/features/questions/presentation/subcategory_selection_screen.dart';
 import 'package:judo_exam/src/features/settings/application/settings_providers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -319,6 +320,52 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('表示できる問題がありません。'), findsOneWidget);
+  });
+
+  testWidgets('問題一覧で科目と実データ由来のsubcategoryを絞り込める', (tester) async {
+    final questions = [
+      _question(id: '1', subcategory: '骨格系', text: '骨格系の問題'),
+      _question(id: '2', subcategory: '筋系', text: '筋系の問題'),
+      _question(
+        id: '3',
+        category: QuestionCategory.physiology,
+        subcategory: '呼吸',
+        text: '呼吸の問題',
+      ),
+      _question(
+        id: '4',
+        category: QuestionCategory.pathology,
+        subcategory: '',
+        text: '病理学の問題',
+      ),
+    ];
+
+    await tester.pumpWidget(
+      ProviderScope(
+        child: MaterialApp(home: QuestionListScreen(questions: questions)),
+      ),
+    );
+
+    await tester.tap(find.widgetWithText(FilterChip, '解剖学'));
+    await tester.pump();
+
+    expect(find.byKey(const ValueKey('subcategory-filter')), findsOneWidget);
+    expect(find.widgetWithText(FilterChip, '骨格系'), findsOneWidget);
+    expect(find.widgetWithText(FilterChip, '筋系'), findsOneWidget);
+    expect(find.widgetWithText(FilterChip, '神経系'), findsNothing);
+    expect(find.text('呼吸の問題'), findsNothing);
+
+    await tester.tap(find.widgetWithText(FilterChip, '筋系'));
+    await tester.pump();
+
+    expect(find.text('筋系の問題'), findsOneWidget);
+    expect(find.text('骨格系の問題'), findsNothing);
+
+    await tester.tap(find.widgetWithText(FilterChip, '病理学'));
+    await tester.pump();
+
+    expect(find.byKey(const ValueKey('subcategory-filter')), findsNothing);
+    expect(find.text('病理学の問題'), findsOneWidget);
   });
 }
 
