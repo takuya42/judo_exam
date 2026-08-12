@@ -12,6 +12,7 @@ class FavoritesScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final questionsAsync = ref.watch(questionsProvider);
+    final requiredAsync = ref.watch(requiredQuestionsProvider);
     final favorites = ref.watch(learningDataControllerProvider).favorites;
 
     return Scaffold(
@@ -20,8 +21,9 @@ class FavoritesScreen extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) => Center(child: Text('問題を取得できませんでした: $error')),
         data: (questions) {
+          final allQuestions = [...questions, ...?requiredAsync.valueOrNull];
           final favoriteQuestions = favorites
-              .map((favorite) => _findQuestion(questions, favorite.questionId))
+              .map((favorite) => _findQuestion(allQuestions, favorite.storageQuestionId))
               .whereType<Question>()
               .toList(growable: false);
 
@@ -60,7 +62,7 @@ class FavoritesScreen extends ConsumerWidget {
 
   Question? _findQuestion(List<Question> questions, String questionId) {
     for (final question in questions) {
-      if (question.id == questionId) return question;
+      if (question.storageId == questionId || (!question.isRequired && question.id == questionId)) return question;
     }
     return null;
   }

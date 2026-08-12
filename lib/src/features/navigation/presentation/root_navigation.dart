@@ -6,6 +6,7 @@ import '../../auth/presentation/auth_dialogs.dart';
 import '../../favorites/presentation/favorites_screen.dart';
 import '../../home/presentation/home_screen.dart';
 import '../../questions/presentation/question_list_screen.dart';
+import '../../questions/presentation/required_question_screen.dart';
 import '../../settings/presentation/settings_screen.dart';
 import '../application/navigation_provider.dart';
 
@@ -15,7 +16,7 @@ class RootNavigation extends ConsumerWidget {
   static const _screens = <Widget>[
     HomeScreen(),
     QuestionListScreen(),
-    QuestionListScreen(title: '必修問題', requiredOnly: true),
+    RequiredQuestionScreen(),
     FavoritesScreen(),
     SettingsScreen(),
   ];

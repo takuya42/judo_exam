@@ -107,6 +107,7 @@ class SettingsScreen extends ConsumerWidget {
                 title: '問題データ再取得',
                 onTap: () {
                   ref.invalidate(questionsProvider);
+                  ref.invalidate(requiredQuestionsProvider);
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('問題データを再取得しています')),
                   );

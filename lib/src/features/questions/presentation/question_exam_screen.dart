@@ -48,7 +48,7 @@ class _QuestionExamScreenState extends ConsumerState<QuestionExamScreen> {
       final canAnswer = await ref
           .read(dailyAnswerLimitControllerProvider.notifier)
           .tryRecordAnswer(
-            questionId: question.id,
+            questionId: question.storageId,
             isPremium: ref.read(isPremiumProvider),
           );
       if (!canAnswer) {
@@ -95,7 +95,7 @@ class _QuestionExamScreenState extends ConsumerState<QuestionExamScreen> {
     final currentNumber = _currentIndex + 1;
     final totalCount = questions.length;
     final progress = currentNumber / totalCount;
-    final isFavorite = ref.watch(learningDataControllerProvider).isFavorite(question.id);
+    final isFavorite = ref.watch(learningDataControllerProvider).isFavoriteQuestion(question);
 
     return Scaffold(
       appBar: AppBar(
