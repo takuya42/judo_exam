@@ -19,9 +19,8 @@ class GoogleSheetService {
   static const String spreadsheetId =
       '1Vd7dEb9iD1Gz3piWmdaRMdccCXRqQEjbE942XtAJERs';
   static const String requiredQuestionsCsvUrl =
-      'https://docs.google.com/spreadsheets/d/e/'
-      '2PACX-1vRmPQkrUIF5M0dysEcyVY_Sijo8zJM3dlWETZDGdeF3_SxuaqXBaQfp8Jtzd0dBRcDDDds0AK7RQE-o7Q/'
-      'pub?gid=1870506905&single=true&output=csv';
+      'https://docs.google.com/spreadsheets/d/$spreadsheetId/'
+      'gviz/tq?tqx=out:csv&gid=1870506905';
 
   final http.Client _client;
 
@@ -69,11 +68,33 @@ class GoogleSheetService {
   }
 
   Future<String> fetchRequiredQuestionsCsv() async {
+    final uri = Uri.parse(requiredQuestionsCsvUrl);
+    debugPrint('[RequiredQuestions] 取得URL: $uri');
     try {
-      final response = await _client.get(Uri.parse(requiredQuestionsCsvUrl));
+      final response = await _client.get(uri);
+      final contentType = response.headers['content-type'] ?? '(なし)';
+      final bodyForLog = utf8.decode(response.bodyBytes, allowMalformed: true);
+      final bodyPreview = bodyForLog.substring(
+        0,
+        bodyForLog.length < 500 ? bodyForLog.length : 500,
+      );
+      debugPrint('[RequiredQuestions] statusCode: ${response.statusCode}');
+      debugPrint('[RequiredQuestions] Content-Type: $contentType');
+      debugPrint('[RequiredQuestions] response.body先頭500文字: $bodyPreview');
+
       if (response.statusCode != 200) {
         throw GoogleSheetException(
           '必修問題を取得できませんでした。ステータスコード: ${response.statusCode}',
+        );
+      }
+      final normalizedContentType = contentType.toLowerCase();
+      final normalizedBody = bodyForLog.trimLeft().toLowerCase();
+      if (normalizedContentType.contains('text/html') ||
+          normalizedBody.startsWith('<!doctype html') ||
+          normalizedBody.startsWith('<html')) {
+        throw GoogleSheetException(
+          'Google SheetsからCSVではなくHTMLが返されました。'
+          '公開設定またはgidを確認してください。',
         );
       }
       return utf8.decode(response.bodyBytes);
@@ -93,7 +114,12 @@ class GoogleSheetService {
   List<Question> parseRequiredQuestionsCsv(String source) {
     try {
       final rows = _parseCsv(source);
-      if (rows.isEmpty) return const <Question>[];
+      debugPrint('[RequiredQuestions] CSVの行数: ${rows.length}');
+      if (rows.isEmpty) {
+        debugPrint('[RequiredQuestions] 解析したヘッダー: []');
+        debugPrint('[RequiredQuestions] Questionへの変換成功件数: 0');
+        return const <Question>[];
+      }
 
       const expectedHeader = <String>[
         'id',
@@ -110,6 +136,7 @@ class GoogleSheetService {
       if (header.isNotEmpty) {
         header[0] = header[0].replaceFirst('\ufeff', '');
       }
+      debugPrint('[RequiredQuestions] 解析したヘッダー: $header');
       if (header.length < expectedHeader.length ||
           !expectedHeader.indexed.every(
             (entry) => header[entry.$1].trim() == entry.$2,
@@ -135,6 +162,9 @@ class GoogleSheetService {
           );
         }
       }
+      debugPrint(
+        '[RequiredQuestions] Questionへの変換成功件数: ${questions.length}',
+      );
       return List<Question>.unmodifiable(questions);
     } on Object catch (error, stackTrace) {
       debugPrint('必修問題CSVのパースに失敗しました: $error\n$stackTrace');
