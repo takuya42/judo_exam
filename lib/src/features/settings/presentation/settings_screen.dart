@@ -17,6 +17,7 @@ class SettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final colorScheme = Theme.of(context).colorScheme;
+    final isPremium = ref.watch(isPremiumProvider);
 
     return Scaffold(
       backgroundColor: colorScheme.surfaceContainerLowest,
@@ -31,8 +32,10 @@ class SettingsScreen extends ConsumerWidget {
             children: [
               _SettingsTile(
                 icon: Icons.workspace_premium_outlined,
-                title: '買い切り版',
-                onTap: () => Navigator.of(context).push(
+                title: 'プレミアムプラン',
+                subtitle: isPremium ? 'プレミアム利用中' : '回答数無制限ですべての問題を学習',
+                trailing: isPremium ? const Icon(Icons.verified_rounded) : null,
+                onTap: isPremium ? null : () => Navigator.of(context).push(
                   MaterialPageRoute<void>(
                     builder: (_) => const PremiumScreen(),
                   ),

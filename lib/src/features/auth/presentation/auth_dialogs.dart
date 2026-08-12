@@ -62,17 +62,17 @@ Future<void> showFreeLimitDialog(BuildContext context) {
   return showDialog<void>(
     context: context,
     builder: (dialogContext) => AlertDialog(
-      title: const Text('無料利用上限に達しました'),
-      content: const Text('買い切り版で全問題を学習できます'),
+      title: const Text('本日の無料問題数に達しました'),
+      content: const Text('無料プランでは1日20問まで回答できます。\nプレミアムなら問題数の制限なく学習できます。'),
       actions: [
+        TextButton(onPressed: () => Navigator.of(dialogContext).pop(), child: const Text('閉じる')),
         FilledButton(
           onPressed: () {
             Navigator.of(dialogContext).pop();
             Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const PremiumScreen()));
           },
-          child: const Text('買い切り版を見る'),
+          child: const Text('プレミアムを見る'),
         ),
-        TextButton(onPressed: () => Navigator.of(dialogContext).pop(), child: const Text('閉じる')),
       ],
     ),
   );

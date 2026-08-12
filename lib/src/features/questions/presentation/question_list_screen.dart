@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../premium/application/premium_providers.dart';
+import '../../settings/application/settings_providers.dart';
 import '../application/question_providers.dart';
 import '../domain/question.dart';
 import '../domain/question_category.dart';
@@ -23,6 +25,11 @@ class _QuestionListScreenState extends ConsumerState<QuestionListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ref.read(dailyAnswerLimitControllerProvider.notifier).refreshDate();
+      }
+    });
     final questionsAsync = widget.questions == null
         ? ref.watch(questionsProvider)
         : AsyncValue<List<Question>>.data(widget.questions!);
@@ -61,6 +68,12 @@ class _QuestionListScreenState extends ConsumerState<QuestionListScreen> {
 
     return Column(
       children: [
+        if (!ref.watch(isPremiumProvider))
+          _DailyFreeAnswerCount(
+            answeredCount: ref
+                .watch(dailyAnswerLimitControllerProvider)
+                .answeredCount,
+          ),
         _QuestionFilters(
           selectedCategory: _selectedCategory,
           selectedSubcategory: _selectedSubcategory,
@@ -99,6 +112,38 @@ class _QuestionListScreenState extends ConsumerState<QuestionListScreen> {
                 ),
         ),
       ],
+    );
+  }
+}
+
+class _DailyFreeAnswerCount extends StatelessWidget {
+  const _DailyFreeAnswerCount({required this.answeredCount});
+
+  final int answeredCount;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.primaryContainer,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('本日の無料問題', style: Theme.of(context).textTheme.labelLarge),
+          const SizedBox(height: 2),
+          Text(
+            '$answeredCount / $freeDailyAnswerLimit問',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
