@@ -266,9 +266,17 @@ class UserProfile {
   const UserProfile({required this.uid, this.email, this.displayName, required this.provider, required this.answerCount, required this.isPremium});
   factory UserProfile.initial(String uid, {String? email, String? displayName}) => UserProfile(uid: uid, email: email, displayName: displayName, provider: 'email', answerCount: 0, isPremium: false);
   factory UserProfile.fromFirestore(DocumentSnapshot<Map<String, dynamic>> snapshot) {
-    final data = snapshot.data() ?? const <String, dynamic>{};
+    return UserProfile.fromJson(
+      snapshot.data() ?? const <String, dynamic>{},
+      documentId: snapshot.id,
+    );
+  }
+  factory UserProfile.fromJson(
+    Map<String, dynamic> data, {
+    String? documentId,
+  }) {
     return UserProfile(
-      uid: (data['uid'] as String?) ?? snapshot.id,
+      uid: (data['uid'] as String?) ?? documentId ?? '',
       email: data['email'] as String?,
       displayName: data['displayName'] as String?,
       provider: (data['provider'] as String?) ?? 'email',
