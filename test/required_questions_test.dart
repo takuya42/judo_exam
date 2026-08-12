@@ -222,6 +222,13 @@ R-1,解剖学,"カンマ,を含む問題",選択肢1,選択肢2,選択肢3,選�
       ).correctChoiceIndex,
       1,
     );
+    expect(
+      () => Question.fromSheetRow(
+        row('2.5'),
+        hasSubcategory: false,
+      ),
+      throwsFormatException,
+    );
   });
 
   test('必修問題の一覧が専用Providerまで渡る', () async {

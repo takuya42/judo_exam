@@ -22,8 +22,10 @@ void main() {
           expect(request.url.queryParameters['gid'], '1580177639');
           expect(request.url.queryParameters['tqx'], 'out:csv');
           return http.Response(
-            'id,category,question,choice1,choice2,choice3,choice4,answer,explanation\n'
-            '公衆衛生学-1,,公衆衛生学の問題,選択肢1,選択肢2,選択肢3,選択肢4,1,解説',
+            'id,category,question,choice1,choice2,choice3,choice4,correctAnswer,explanation\n'
+            '\n'
+            '公衆衛生学-1,,公衆衛生学の問題,選択肢1,選択肢2,選択肢3,選択肢4, 1 ,解説\n'
+            ',,,,,,,,',
             200,
             headers: {'content-type': 'text/csv'},
           );
@@ -84,6 +86,7 @@ void main() {
     );
     expect(publicHealth.questionText, '公衆衛生学の問題');
     expect(publicHealth.subcategory, isEmpty);
+    expect(publicHealth.correctChoiceIndex, 0);
   });
 
   test('不正なanswerではシート行番号・id・subcategory・実値を表示する', () async {
