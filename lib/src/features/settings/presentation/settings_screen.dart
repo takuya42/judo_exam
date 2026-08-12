@@ -4,7 +4,9 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/foundation.dart';
 
 import '../../auth/application/auth_providers.dart';
+import '../../auth/presentation/auth_dialogs.dart';
 import '../../auth/presentation/email_login_screen.dart';
+import '../../history/presentation/study_history_screen.dart';
 import '../../navigation/application/navigation_provider.dart';
 import '../../premium/application/premium_providers.dart';
 import '../../premium/presentation/premium_screen.dart';
@@ -75,6 +77,22 @@ class SettingsScreen extends ConsumerWidget {
           _SettingsSection(
             title: '学習データ',
             children: [
+              _SettingsTile(
+                icon: Icons.history_outlined,
+                title: '学習履歴',
+                onTap: () {
+                  final user = ref.read(authStateProvider).valueOrNull;
+                  if (user == null) {
+                    showLoginRequiredDialog(context, ref);
+                    return;
+                  }
+                  Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const StudyHistoryScreen(),
+                    ),
+                  );
+                },
+              ),
               _SettingsTile(
                 icon: Icons.cloud_sync_outlined,
                 title: '問題データ再取得',

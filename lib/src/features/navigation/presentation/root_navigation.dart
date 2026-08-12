@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../auth/application/auth_providers.dart';
 import '../../auth/presentation/auth_dialogs.dart';
 import '../../favorites/presentation/favorites_screen.dart';
-import '../../history/presentation/study_history_screen.dart';
 import '../../home/presentation/home_screen.dart';
 import '../../questions/presentation/question_list_screen.dart';
 import '../../settings/presentation/settings_screen.dart';
@@ -16,7 +15,7 @@ class RootNavigation extends ConsumerWidget {
   static const _screens = <Widget>[
     HomeScreen(),
     QuestionListScreen(),
-    StudyHistoryScreen(),
+    QuestionListScreen(title: '必修問題', requiredOnly: true),
     FavoritesScreen(),
     SettingsScreen(),
   ];
@@ -41,7 +40,10 @@ class RootNavigation extends ConsumerWidget {
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'ホーム'),
           BottomNavigationBarItem(icon: Icon(Icons.public), label: '問題'),
-          BottomNavigationBarItem(icon: Icon(Icons.history_outlined), label: '履歴'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.assignment_turned_in_outlined),
+            label: '必修問題',
+          ),
           BottomNavigationBarItem(icon: Icon(Icons.star_outline), label: 'お気に入り'),
           BottomNavigationBarItem(icon: Icon(Icons.settings_outlined), label: '設定'),
         ],

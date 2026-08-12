@@ -12,6 +12,7 @@ class Question {
     required this.correctChoiceIndex,
     required this.explanation,
     required this.isPremium,
+    this.isRequired = false,
     this.year,
   }) : assert(choices.length == 4, 'Question must have exactly four choices'),
        assert(
@@ -27,6 +28,7 @@ class Question {
   final int correctChoiceIndex;
   final String explanation;
   final bool isPremium;
+  final bool isRequired;
   final int? year;
 
   String get correctChoice => choices[correctChoiceIndex];
@@ -72,6 +74,10 @@ class Question {
         json['isPremium'] ?? json['premium'],
         defaultValue: true,
       ),
+      isRequired: _boolValue(
+        json['isRequired'] ?? json['required'],
+        defaultValue: false,
+      ),
       year: _optionalIntValue(json['year']),
     );
   }
@@ -101,6 +107,9 @@ class Question {
       year: values.length > explanationIndex + 2
           ? _optionalIntValue(values[explanationIndex + 2])
           : null,
+      isRequired: values.length > explanationIndex + 3
+          ? _boolValue(values[explanationIndex + 3], defaultValue: false)
+          : false,
     );
   }
 
@@ -179,6 +188,7 @@ class Question {
     int? correctChoiceIndex,
     String? explanation,
     bool? isPremium,
+    bool? isRequired,
     int? year,
   }) {
     return Question(
@@ -190,6 +200,7 @@ class Question {
       correctChoiceIndex: correctChoiceIndex ?? this.correctChoiceIndex,
       explanation: explanation ?? this.explanation,
       isPremium: isPremium ?? this.isPremium,
+      isRequired: isRequired ?? this.isRequired,
       year: year ?? this.year,
     );
   }
