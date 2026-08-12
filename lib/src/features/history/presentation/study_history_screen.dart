@@ -13,6 +13,7 @@ class StudyHistoryScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final history = ref.watch(learningDataControllerProvider).history;
     final questionsAsync = ref.watch(questionsProvider);
+    final requiredAsync = ref.watch(requiredQuestionsProvider);
 
     return Scaffold(
       appBar: AppBar(title: const Text('学習履歴')),
@@ -30,7 +31,7 @@ class StudyHistoryScreen extends ConsumerWidget {
                 final entry = history[index];
                 final question = questionsAsync.valueOrNull == null
                     ? null
-                    : _findQuestion(questionsAsync.valueOrNull!, entry.questionId);
+                    : _findQuestion([...questionsAsync.valueOrNull!, ...?requiredAsync.valueOrNull], entry.storageQuestionId);
                 return Card(
                   child: ListTile(
                     leading: Icon(
@@ -40,7 +41,7 @@ class StudyHistoryScreen extends ConsumerWidget {
                           : Theme.of(context).colorScheme.error,
                     ),
                     title: Text(entry.questionText, maxLines: 2, overflow: TextOverflow.ellipsis),
-                    subtitle: Text('${entry.category.label} / ${_formatDateTime(entry.answeredAt)}'),
+                    subtitle: Text('${entry.questionType == 'required' ? '必修問題' : '通常問題'} / ${entry.category.label} / ${_formatDateTime(entry.answeredAt)}'),
                     trailing: Text(entry.isCorrect ? '正解' : '不正解'),
                     onTap: question == null
                         ? null
@@ -61,7 +62,7 @@ class StudyHistoryScreen extends ConsumerWidget {
 
   Question? _findQuestion(List<Question> questions, String questionId) {
     for (final question in questions) {
-      if (question.id == questionId) return question;
+      if (question.storageId == questionId || (!question.isRequired && question.id == questionId)) return question;
     }
     return null;
   }

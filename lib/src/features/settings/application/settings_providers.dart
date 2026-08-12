@@ -70,6 +70,12 @@ class DailyAnswerLimitController extends StateNotifier<DailyAnswerLimitState> {
     _rollOverIfNeeded();
     if (isPremium) return true;
     if (state.questionIds.contains(questionId)) return true;
+    // Counts written by older versions used the raw normal-question ID.
+    // Recognize them for the rest of that day without allowing a duplicate.
+    if (questionId.startsWith('normal_') &&
+        state.questionIds.contains(questionId.substring('normal_'.length))) {
+      return true;
+    }
     if (state.answeredCount >= freeDailyAnswerLimit) return false;
 
     state = DailyAnswerLimitState(
@@ -160,6 +166,7 @@ class LearningDataController extends StateNotifier<LearningSummary> {
         answeredAt: DateTime.now(),
         isCorrect: isCorrect,
         category: question.category,
+        questionType: question.questionType,
       ),
       ...state.history,
     ];
@@ -172,7 +179,10 @@ class LearningDataController extends StateNotifier<LearningSummary> {
 
   Future<void> toggleFavorite(Question question) async {
     final favorites = [...state.favorites];
-    final index = favorites.indexWhere((favorite) => favorite.questionId == question.id);
+    final index = favorites.indexWhere(
+      (favorite) => favorite.storageQuestionId == question.storageId ||
+          (!question.isRequired && favorite.questionId == question.id),
+    );
     if (index == -1) {
       favorites.insert(0, FavoriteQuestion.fromQuestion(question));
     } else {
@@ -247,6 +257,11 @@ class LearningSummary {
 
   bool isFavorite(String questionId) => favorites.any((favorite) => favorite.questionId == questionId);
 
+  bool isFavoriteQuestion(Question question) => favorites.any(
+        (favorite) => favorite.storageQuestionId == question.storageId ||
+            (!question.isRequired && favorite.questionId == question.id),
+      );
+
   LearningSummary copyWith({
     List<StudyHistoryEntry>? history,
     List<FavoriteQuestion>? favorites,
@@ -269,6 +284,7 @@ class StudyHistoryEntry {
     required this.answeredAt,
     required this.isCorrect,
     required this.category,
+    this.questionType = 'normal',
   });
 
   factory StudyHistoryEntry.fromJson(Map<String, dynamic> json) => StudyHistoryEntry(
@@ -278,6 +294,7 @@ class StudyHistoryEntry {
         answeredAt: DateTime.tryParse(json['answeredAt']?.toString() ?? '') ?? DateTime.fromMillisecondsSinceEpoch(0),
         isCorrect: json['isCorrect'] == true,
         category: QuestionCategory.fromSheetValue(json['category']?.toString() ?? QuestionCategory.anatomy.name),
+        questionType: json['questionType']?.toString() == 'required' ? 'required' : 'normal',
       );
 
   final String id;
@@ -286,6 +303,10 @@ class StudyHistoryEntry {
   final DateTime answeredAt;
   final bool isCorrect;
   final QuestionCategory category;
+  final String questionType;
+  String get storageQuestionId => questionId.startsWith('${questionType}_')
+      ? questionId
+      : '${questionType}_$questionId';
 
   Map<String, dynamic> toJson() => {
         'id': id,
@@ -294,6 +315,7 @@ class StudyHistoryEntry {
         'answeredAt': answeredAt.toIso8601String(),
         'isCorrect': isCorrect,
         'category': category.name,
+        'questionType': questionType,
       };
 }
 
@@ -304,13 +326,15 @@ class FavoriteQuestion {
     required this.questionText,
     required this.category,
     required this.savedAt,
+    this.questionType = 'normal',
   });
 
   factory FavoriteQuestion.fromQuestion(Question question) => FavoriteQuestion(
-        questionId: question.id,
+        questionId: question.storageId,
         questionText: question.questionText,
         category: question.category,
         savedAt: DateTime.now(),
+        questionType: question.questionType,
       );
 
   factory FavoriteQuestion.fromJson(Map<String, dynamic> json) => FavoriteQuestion(
@@ -318,18 +342,24 @@ class FavoriteQuestion {
         questionText: json['questionText']?.toString() ?? '',
         category: QuestionCategory.fromSheetValue(json['category']?.toString() ?? QuestionCategory.anatomy.name),
         savedAt: DateTime.tryParse(json['savedAt']?.toString() ?? '') ?? DateTime.fromMillisecondsSinceEpoch(0),
+        questionType: json['questionType']?.toString() == 'required' ? 'required' : 'normal',
       );
 
   final String questionId;
   final String questionText;
   final QuestionCategory category;
   final DateTime savedAt;
+  final String questionType;
+  String get storageQuestionId => questionId.startsWith('${questionType}_')
+      ? questionId
+      : '${questionType}_$questionId';
 
   Map<String, dynamic> toJson() => {
         'questionId': questionId,
         'questionText': questionText,
         'category': category.name,
         'savedAt': savedAt.toIso8601String(),
+        'questionType': questionType,
       };
 }
 

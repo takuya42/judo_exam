@@ -17,6 +17,9 @@ class GoogleSheetService {
 
   static const String spreadsheetId =
       '1Vd7dEb9iD1Gz3piWmdaRMdccCXRqQEjbE942XtAJERs';
+  static const String requiredQuestionsCsvUrl =
+      'https://docs.google.com/spreadsheets/d/$spreadsheetId/'
+      'export?format=csv&gid=1870506905';
 
   final http.Client _client;
 
@@ -61,6 +64,87 @@ class GoogleSheetService {
     } catch (error) {
       throw GoogleSheetException('問題データの取得中にエラーが発生しました: $error');
     }
+  }
+
+  Future<String> fetchRequiredQuestionsCsv() async {
+    final response = await _client.get(Uri.parse(requiredQuestionsCsvUrl));
+    if (response.statusCode != 200) {
+      throw GoogleSheetException(
+        '必修問題を取得できませんでした。ステータスコード: ${response.statusCode}',
+      );
+    }
+    return utf8.decode(response.bodyBytes);
+  }
+
+  /// Parses the required-question CSV with the same [Question] sheet layout.
+  /// Quoted commas, quotes and embedded newlines are supported.
+  List<Question> parseRequiredQuestionsCsv(String source) {
+    final rows = _parseCsv(source);
+    if (rows.isEmpty) return const <Question>[];
+    final first = rows.first
+        .map((value) => value.replaceFirst('\ufeff', '').toLowerCase())
+        .toList();
+    if (rows.first.isNotEmpty) {
+      rows.first[0] = rows.first[0].replaceFirst('\ufeff', '');
+    }
+    final hasHeader = first.contains('id') &&
+        (first.contains('question') || first.contains('問題文'));
+    final hasSubcategory = hasHeader
+        ? first.contains('subcategory') || first.contains('サブカテゴリ')
+        : rows.first.length >= 10;
+    final questions = <Question>[];
+    for (final entry in rows.indexed) {
+      if (hasHeader && entry.$1 == 0) continue;
+      final values = entry.$2;
+      if (values.every((value) => value.trim().isEmpty)) continue;
+      try {
+        questions.add(
+          Question.fromSheetRow(
+            values,
+            hasSubcategory: hasSubcategory,
+          ).copyWith(isPremium: false, isRequired: true),
+        );
+      } on Object catch (error) {
+        throw GoogleSheetException(
+          '必修問題データの形式が不正です（${entry.$1 + 1}行目）: $error',
+        );
+      }
+    }
+    return List<Question>.unmodifiable(questions);
+  }
+
+  List<List<String>> _parseCsv(String source) {
+    final rows = <List<String>>[];
+    var row = <String>[];
+    final field = StringBuffer();
+    var quoted = false;
+    for (var index = 0; index < source.length; index++) {
+      final character = source[index];
+      if (character == '"') {
+        if (quoted && index + 1 < source.length && source[index + 1] == '"') {
+          field.write('"');
+          index++;
+        } else {
+          quoted = !quoted;
+        }
+      } else if (character == ',' && !quoted) {
+        row.add(field.toString().trim());
+        field.clear();
+      } else if ((character == '\n' || character == '\r') && !quoted) {
+        if (character == '\r' && index + 1 < source.length && source[index + 1] == '\n') index++;
+        row.add(field.toString().trim());
+        field.clear();
+        rows.add(row);
+        row = <String>[];
+      } else {
+        field.write(character);
+      }
+    }
+    if (field.isNotEmpty || row.isNotEmpty) {
+      row.add(field.toString().trim());
+      rows.add(row);
+    }
+    return rows;
   }
 
   Future<List<Question>> _loadQuestionsFromSheet(String sheetName) async {

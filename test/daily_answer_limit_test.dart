@@ -57,4 +57,41 @@ void main() {
     }
     expect(controller.state.answeredCount, 0);
   });
+
+  test('normal and required questions share one 20-answer quota', () async {
+    SharedPreferences.setMockInitialValues({});
+    final preferences = await SharedPreferences.getInstance();
+    final controller = DailyAnswerLimitController(
+      preferences,
+      now: () => DateTime(2026, 8, 12),
+    );
+
+    for (var index = 0; index < 12; index++) {
+      expect(
+        await controller.tryRecordAnswer(
+          questionId: 'normal_$index',
+          isPremium: false,
+        ),
+        isTrue,
+      );
+    }
+    for (var index = 0; index < 8; index++) {
+      expect(
+        await controller.tryRecordAnswer(
+          questionId: 'required_$index',
+          isPremium: false,
+        ),
+        isTrue,
+      );
+    }
+
+    expect(controller.state.answeredCount, 20);
+    expect(
+      await controller.tryRecordAnswer(
+        questionId: 'required_9',
+        isPremium: false,
+      ),
+      isFalse,
+    );
+  });
 }

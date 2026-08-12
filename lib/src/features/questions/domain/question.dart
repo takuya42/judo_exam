@@ -32,6 +32,8 @@ class Question {
   final int? year;
 
   String get correctChoice => choices[correctChoiceIndex];
+  String get questionType => isRequired ? 'required' : 'normal';
+  String get storageId => '${questionType}_$id';
 
   Question shuffledChoices({Random? random}) {
     final indexedChoices = choices.indexed.toList(growable: false)
