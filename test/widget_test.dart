@@ -13,6 +13,55 @@ import 'package:judo_exam/src/features/settings/application/settings_providers.d
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  test('公衆衛生学CSVはヘッダーと空行を除き9列形式で解析する', () {
+    final service = GoogleSheetService();
+
+    final questions = service.parsePublicHealthQuestionsCsv(
+      '\ufeffid,category,question,choice1,choice2,choice3,choice4,correctAnswer,explanation\n'
+      '\n'
+      '1,公衆衛生学,公衆衛生の目的として最も適切なのはどれか,1,2,3,4, 2 ,解説\n'
+      ',,,,,,,,',
+    );
+
+    expect(questions, hasLength(1));
+    expect(questions.single.id, '1');
+    expect(questions.single.category, QuestionCategory.publicHealth);
+    expect(questions.single.subcategory, isEmpty);
+    expect(questions.single.questionText, '公衆衛生の目的として最も適切なのはどれか');
+    expect(questions.single.correctChoiceIndex, 1);
+  });
+
+  test('公衆衛生学CSVのcorrectAnswerは1〜4の整数に限定する', () {
+    final service = GoogleSheetService();
+    const header =
+        'id,category,question,choice1,choice2,choice3,choice4,correctAnswer,explanation';
+
+    expect(
+      () => service.parsePublicHealthQuestionsCsv(
+        '$header\n1,公衆衛生学,問題,1,2,3,4,correctAnswer,解説',
+      ),
+      throwsA(
+        isA<FormatException>().having(
+          (error) => error.message,
+          'message',
+          allOf(contains('行番号: 2'), contains('answer: correctAnswer')),
+        ),
+      ),
+    );
+    expect(
+      () => service.parsePublicHealthQuestionsCsv(
+        '$header\n1,公衆衛生学,問題,1,2,3,4,0,解説',
+      ),
+      throwsA(
+        isA<FormatException>().having(
+          (error) => error.message,
+          'message',
+          contains('answer は1〜4である必要があります: 0'),
+        ),
+      ),
+    );
+  });
+
   test('通常問題を各科目のGoogle Visualization形式で読み込む', () async {
     final service = GoogleSheetService(
       client: MockClient((request) async {

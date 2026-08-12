@@ -59,11 +59,7 @@ class GoogleSheetService {
         questions.addAll(await _loadQuestionsFromSheet(sheetName));
       }
       questions.addAll(
-        await _loadQuestionsFromCsv(
-          publicHealthQuestionsCsvUrl,
-          sheetName: QuestionCategory.publicHealth.label,
-          category: QuestionCategory.publicHealth,
-        ),
+        await _loadPublicHealthQuestionsFromCsv(publicHealthQuestionsCsvUrl),
       );
 
       return List<Question>.unmodifiable(questions);
@@ -280,11 +276,8 @@ class GoogleSheetService {
     return List<Question>.unmodifiable(questions);
   }
 
-  Future<List<Question>> _loadQuestionsFromCsv(
-    String csvUrl, {
-    required String sheetName,
-    required QuestionCategory category,
-  }) async {
+  Future<List<Question>> _loadPublicHealthQuestionsFromCsv(String csvUrl) async {
+    const sheetName = '公衆衛生学';
     final response = await _client.get(Uri.parse(csvUrl));
     if (response.statusCode != 200) {
       throw GoogleSheetException(
@@ -305,25 +298,63 @@ class GoogleSheetService {
       );
     }
 
+    return parsePublicHealthQuestionsCsv(body);
+  }
+
+  /// Parses the dedicated 9-column public-health CSV.
+  ///
+  /// Header removal happens here, on the path used by [loadQuestions], before
+  /// any row can reach [Question.fromSheetRow]. This sheet intentionally has
+  /// no `subcategory` column.
+  List<Question> parsePublicHealthQuestionsCsv(String source) {
+    const sheetName = '公衆衛生学';
+    final rows = _parseCsv(source)
+        .map(_normalizedRow)
+        .toList(growable: false);
+    final headerRemoved = rows.isNotEmpty &&
+        _isPublicHealthHeaderRow(rows.first);
+    final indexedRows = rows.indexed
+        .skip(headerRemoved ? 1 : 0)
+        .where((entry) => !entry.$2.every((value) => value.isEmpty))
+        .toList(growable: false);
+    final dataRows = indexedRows
+        .map((entry) => entry.$2)
+        .toList(growable: false);
+
+    debugPrint('sheet: $sheetName');
+    debugPrint('raw rows: ${rows.length}');
+    debugPrint('first raw row: ${rows.isEmpty ? <String>[] : rows.first}');
+    debugPrint('header removed: $headerRemoved');
+    debugPrint('data rows: ${dataRows.length}');
+    debugPrint(
+      'first data row: ${dataRows.isEmpty ? <String>[] : dataRows.first}',
+    );
+
     final questions = <Question>[];
-    final rows = _parseCsv(body);
-    debugPrint('[$sheetName] CSVの行数: ${rows.length}');
-    final header = rows.isEmpty ? const <String>[] : _normalizedRow(rows.first);
-    debugPrint('[$sheetName] ヘッダー: $header');
-    for (final (rowIndex, originalValues) in rows.indexed) {
-      final values = _normalizedRow(originalValues);
-      if (values.every((value) => value.isEmpty) || _isHeaderRow(values)) {
-        continue;
-      }
+    for (final entry in indexedRows) {
+      final rowIndex = entry.$1;
+      final values = entry.$2;
 
       try {
-        if (values.length < 2) {
+        if (values.length < 9) {
           throw FormatException('問題行には9列以上必要です: $values');
         }
-        // This endpoint is dedicated to public-health questions. Do not let a
-        // missing or accidentally copied category cell classify them elsewhere.
-        values[1] = category.label;
-        questions.add(_questionFromValues(values, sheetName: sheetName));
+        final rowForQuestion = List<String>.of(values);
+        // The gid is dedicated to public health. Do not allow an empty or
+        // accidentally copied category cell to classify this row elsewhere.
+        rowForQuestion[1] = sheetName;
+        final rawAnswer = rowForQuestion[7];
+        final answer = int.tryParse(rawAnswer.toString().trim());
+        if (answer == null) {
+          throw FormatException('answer は数値である必要があります: $rawAnswer');
+        }
+        if (answer < 1 || answer > 4) {
+          throw FormatException('answer は1〜4である必要があります: $rawAnswer');
+        }
+        rowForQuestion[7] = answer.toString();
+        questions.add(
+          Question.fromSheetRow(rowForQuestion, hasSubcategory: false),
+        );
       } on FormatException catch (error) {
         throw FormatException(
           _rowErrorMessage(
@@ -344,7 +375,7 @@ class GoogleSheetService {
         );
       }
     }
-    debugPrint('[$sheetName] Questionへの変換成功件数: ${questions.length}');
+    debugPrint('parsed questions: ${questions.length}');
     if (questions.isNotEmpty) {
       final first = questions.first;
       debugPrint(
@@ -354,6 +385,16 @@ class GoogleSheetService {
       );
     }
     return List<Question>.unmodifiable(questions);
+  }
+
+  bool _isPublicHealthHeaderRow(List<String> values) {
+    if (values.length < 9) return false;
+
+    String headerAt(int index) => values[index].trim().toLowerCase();
+    return headerAt(0) == 'id' &&
+        headerAt(1) == 'category' &&
+        headerAt(2) == 'question' &&
+        headerAt(7) == 'correctanswer';
   }
 
   Map<String, dynamic> _decodeVisualizationJson(String responseBody) {
@@ -431,6 +472,18 @@ class GoogleSheetService {
       'answer',
       'explanation',
     ];
+    const subcategoryCsvHeaders = <String>[
+      'id',
+      'category',
+      'subcategory',
+      'question',
+      'choice1',
+      'choice2',
+      'choice3',
+      'choice4',
+      'correctanswer',
+      'explanation',
+    ];
 
     bool matches(List<String> headers) => values.length >= headers.length &&
         headers.indexed.every(
@@ -438,7 +491,8 @@ class GoogleSheetService {
         );
     return matches(legacyHeaders) ||
         matches(csvHeaders) ||
-        matches(subcategoryHeaders);
+        matches(subcategoryHeaders) ||
+        matches(subcategoryCsvHeaders);
   }
 
   List<String> _normalizedRow(List<String> values) {
