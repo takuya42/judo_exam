@@ -703,11 +703,13 @@ IconData _categoryIcon(QuestionCategory category) {
     QuestionCategory.physiology => Icons.monitor_heart_rounded,
     QuestionCategory.kinesiology => Icons.directions_run_rounded,
     QuestionCategory.pathology => Icons.biotech_rounded,
+    QuestionCategory.publicHealth => Icons.health_and_safety_rounded,
     QuestionCategory.clinicalMedicine => Icons.medical_services_rounded,
     QuestionCategory.surgery => Icons.healing_rounded,
     QuestionCategory.orthopedics => Icons.personal_injury_rounded,
     QuestionCategory.rehabilitationMedicine => Icons.wheelchair_pickup_rounded,
     QuestionCategory.judoTherapyTheory => Icons.sports_martial_arts_rounded,
     QuestionCategory.relatedLaws => Icons.gavel_rounded,
+    QuestionCategory.unknownRequired => Icons.help_outline_rounded,
   };
 }
