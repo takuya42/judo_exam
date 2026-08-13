@@ -61,13 +61,19 @@ class HomeScreen extends ConsumerWidget {
   }
 }
 
-void _startRandomExam(BuildContext context, WidgetRef ref, AsyncValue<List<Question>> questionsAsync) {
+void _startRandomExam(
+  BuildContext context,
+  WidgetRef ref,
+  AsyncValue<List<Question>> questionsAsync,
+) {
   if (ref.read(authStateProvider).valueOrNull == null) {
     showLoginRequiredDialog(context, ref);
     return;
   }
   questionsAsync.whenData((questions) {
-    final shuffled = List<Question>.of(questions)..shuffle();
+    final shuffled = ref
+        .read(randomQuestionOrderProvider.notifier)
+        .create(questions);
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => QuestionExamScreen(
@@ -114,45 +120,34 @@ class _HomeContent extends ConsumerWidget {
         GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          itemCount: visibleCategories.length,
+          itemCount: visibleCategories.length - (visibleCategories.length % 2),
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 2,
-            mainAxisSpacing: 12,
-            crossAxisSpacing: 12,
-            childAspectRatio: 1.28,
+            mainAxisSpacing: 10,
+            crossAxisSpacing: 10,
+            childAspectRatio: 1.42,
           ),
           itemBuilder: (context, index) {
             final category = visibleCategories[index];
-            final subcategories = subcategoriesByCategory[category];
             return _CategoryCard(
               category: category,
               questionCount: categoryCounts[category] ?? 0,
-              onTap: () {
-                if (ref.read(authStateProvider).valueOrNull == null) {
-                  showLoginRequiredDialog(context, ref);
-                  return;
-                }
-                final categoryQuestions = questions
-                    .where((question) => question.category == category)
-                    .toList(growable: false);
-                Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => subcategories != null
-                        ? SubcategorySelectionScreen(
-                            category: category,
-                            questions: categoryQuestions,
-                            subcategories: subcategories,
-                          )
-                        : QuestionExamScreen(
-                            questions: categoryQuestions,
-                            title: category.label,
-                          ),
-                  ),
-                );
-              },
+              onTap: () => _openCategory(context, ref, category),
             );
           },
         ),
+        if (visibleCategories.length.isOdd) ...[
+          const SizedBox(height: 10),
+          SizedBox(
+            height: 78,
+            child: _CategoryCard(
+              category: visibleCategories.last,
+              questionCount: categoryCounts[visibleCategories.last] ?? 0,
+              isWide: true,
+              onTap: () => _openCategory(context, ref, visibleCategories.last),
+            ),
+          ),
+        ],
         const SizedBox(height: 32),
         const _SectionHeader(
           icon: Icons.verified_rounded,
@@ -164,6 +159,35 @@ class _HomeContent extends ConsumerWidget {
         const SizedBox(height: 24),
         const _LearningMenu(),
       ],
+    );
+  }
+
+  void _openCategory(
+    BuildContext context,
+    WidgetRef ref,
+    QuestionCategory category,
+  ) {
+    if (ref.read(authStateProvider).valueOrNull == null) {
+      showLoginRequiredDialog(context, ref);
+      return;
+    }
+    final categoryQuestions = questions
+        .where((question) => question.category == category)
+        .toList(growable: false);
+    final subcategories = subcategoriesByCategory[category];
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => subcategories != null
+            ? SubcategorySelectionScreen(
+                category: category,
+                questions: categoryQuestions,
+                subcategories: subcategories,
+              )
+            : QuestionExamScreen(
+                questions: categoryQuestions,
+                title: category.label,
+              ),
+      ),
     );
   }
 
@@ -336,11 +360,13 @@ class _CategoryCard extends StatelessWidget {
     required this.category,
     required this.questionCount,
     required this.onTap,
+    this.isWide = false,
   });
 
   final QuestionCategory category;
   final int questionCount;
   final VoidCallback onTap;
+  final bool isWide;
 
   @override
   Widget build(BuildContext context) {
@@ -351,53 +377,94 @@ class _CategoryCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(13, 12, 12, 12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  _IconBadge(
-                    icon: _categoryIcon(category),
-                    size: 34,
-                    circular: true,
-                  ),
-                  const Spacer(),
-                  Icon(
-                    Icons.chevron_right_rounded,
-                    size: 20,
-                    color: colorScheme.onSurfaceVariant.withOpacity(0.7),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Expanded(
-                child: Align(
-                  alignment: Alignment.topLeft,
-                  child: AutoSizeText(
-                    category.label,
-                    maxLines: 2,
-                    minFontSize: 12,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      height: 1.18,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                '$questionCount問',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
+          padding: EdgeInsets.symmetric(
+            horizontal: isWide ? 16 : 12,
+            vertical: isWide ? 10 : 11,
           ),
+          child: isWide
+              ? Row(
+                  children: [
+                    _IconBadge(
+                      icon: _categoryIcon(category),
+                      size: 38,
+                      circular: true,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        category.label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      '$questionCount問',
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Icon(
+                      Icons.chevron_right_rounded,
+                      size: 20,
+                      color: colorScheme.onSurfaceVariant.withOpacity(0.7),
+                    ),
+                  ],
+                )
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        _IconBadge(
+                          icon: _categoryIcon(category),
+                          size: 34,
+                          circular: true,
+                        ),
+                        const Spacer(),
+                        Icon(
+                          Icons.chevron_right_rounded,
+                          size: 20,
+                          color: colorScheme.onSurfaceVariant.withOpacity(0.7),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Expanded(
+                      child: Align(
+                        alignment: Alignment.topLeft,
+                        child: AutoSizeText(
+                          category.label,
+                          maxLines: 2,
+                          minFontSize: 12,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleMedium
+                              ?.copyWith(
+                                fontWeight: FontWeight.w700,
+                                height: 1.18,
+                              ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '$questionCount問',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
         ),
       ),
     );
@@ -496,7 +563,9 @@ class _LearningMenu extends ConsumerWidget {
               return;
             }
             ref.read(questionsProvider).whenData((questions) {
-              final shuffled = List<Question>.of(questions)..shuffle();
+              final shuffled = ref
+                  .read(randomQuestionOrderProvider.notifier)
+                  .create(questions);
               Navigator.of(context).push(
                 MaterialPageRoute<void>(
                   builder: (_) => QuestionExamScreen(
