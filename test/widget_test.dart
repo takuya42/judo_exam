@@ -75,6 +75,45 @@ void main() {
     );
   });
 
+  test('通常問題のidとcorrectAnswerは整数相当の小数表記を変換する', () {
+    final service = GoogleSheetService();
+    const header =
+        'id,category,question,choice1,choice2,choice3,choice4,correctAnswer,explanation';
+
+    final questions = service.parsePublicHealthQuestionsCsv(
+      '$header\n1.0,公衆衛生学,問題1,1,2,3,4,1,解説\n'
+      '2.0,公衆衛生学,問題2,1,2,3,4,4.0,解説',
+    );
+
+    expect(questions.map((question) => question.id), ['1', '2']);
+    expect(questions.map((question) => question.correctChoiceIndex), [0, 3]);
+  });
+
+  test('通常問題のidとcorrectAnswerの非整数・文字列・空文字はエラーにする', () {
+    final service = GoogleSheetService();
+    const header =
+        'id,category,question,choice1,choice2,choice3,choice4,correctAnswer,explanation';
+
+    for (final invalidId in ['1.5', 'abc', '']) {
+      expect(
+        () => service.parsePublicHealthQuestionsCsv(
+          '$header\n$invalidId,公衆衛生学,問題,1,2,3,4,1,解説',
+        ),
+        throwsFormatException,
+        reason: 'id=$invalidId',
+      );
+    }
+    for (final invalidAnswer in ['1.5', 'abc', '']) {
+      expect(
+        () => service.parsePublicHealthQuestionsCsv(
+          '$header\n1,公衆衛生学,問題,1,2,3,4,$invalidAnswer,解説',
+        ),
+        throwsFormatException,
+        reason: 'correctAnswer=$invalidAnswer',
+      );
+    }
+  });
+
   test('通常問題を各科目のGoogle Visualization形式で読み込む', () async {
     final service = GoogleSheetService(
       client: MockClient((request) async {
@@ -86,7 +125,7 @@ void main() {
           return http.Response(
             'id,category,question,choice1,choice2,choice3,choice4,correctAnswer,explanation\n'
             '\n'
-            '公衆衛生学-1,,公衆衛生学の問題,選択肢1,選択肢2,選択肢3,選択肢4, 1 ,解説\n'
+            '1.0,,公衆衛生学の問題,選択肢1,選択肢2,選択肢3,選択肢4, 4.0 ,解説\n'
             ',,,,,,,,',
             200,
             headers: {'content-type': 'text/csv'},
@@ -95,7 +134,7 @@ void main() {
         final isMigrated = sheetName == '解剖学' || sheetName == '生理学';
         final values = isMigrated
             ? [
-                '$sheetName-1',
+                '1.0',
                 sheetName,
                 sheetName == '生理学' ? '血液・循環' : '骨格系',
                 '$sheetNameの問題',
@@ -103,18 +142,18 @@ void main() {
                 '選択肢2',
                 '選択肢3',
                 '選択肢4',
-                '1',
+                '4.0',
                 '解説',
               ]
             : [
-                '$sheetName-1',
+                '1.0',
                 sheetName,
                 '$sheetNameの問題',
                 '選択肢1',
                 '選択肢2',
                 '選択肢3',
                 '選択肢4',
-                '1',
+                '4.0',
                 '解説',
                 'false',
                 '2026',
@@ -141,6 +180,8 @@ void main() {
     expect(physiology.questionText, '生理学の問題');
     expect(kinesiology.subcategory, isEmpty);
     expect(kinesiology.questionText, '運動学の問題');
+    expect(kinesiology.id, '1');
+    expect(kinesiology.correctChoiceIndex, 3);
     expect(kinesiology.isPremium, isFalse);
     expect(kinesiology.year, 2026);
     final publicHealth = questions.singleWhere(
@@ -148,7 +189,8 @@ void main() {
     );
     expect(publicHealth.questionText, '公衆衛生学の問題');
     expect(publicHealth.subcategory, isEmpty);
-    expect(publicHealth.correctChoiceIndex, 0);
+    expect(publicHealth.id, '1');
+    expect(publicHealth.correctChoiceIndex, 3);
   });
 
   test('先行科目が失敗しても公衆衛生学の取得を開始する', () async {
@@ -187,7 +229,7 @@ void main() {
         }
         final values = sheetName == '生理学'
             ? [
-                'P-ERROR',
+                '1',
                 '生理学',
                 '血液・循環',
                 '問題文',
@@ -199,7 +241,7 @@ void main() {
                 '解説',
               ]
             : [
-                '$sheetName-1',
+                '1',
                 sheetName,
                 '問題文',
                 '選択肢1',
@@ -226,7 +268,7 @@ void main() {
           'message',
           allOf(
             contains('行番号: 2'),
-            contains('id: P-ERROR'),
+            contains('id: 1'),
             contains('subcategory: 血液・循環'),
             contains('answer: 正解は1'),
             contains('answer は数値である必要があります'),
