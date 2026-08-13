@@ -62,6 +62,14 @@ class DailyAnswerLimitController extends StateNotifier<DailyAnswerLimitState> {
   final SharedPreferences _preferences;
   final DateTime Function() _now;
 
+  /// Whether the user may start or continue answering under today's quota.
+  ///
+  /// Premium users never consume or depend on the free-answer quota.
+  bool canAnswer({required bool isPremium}) {
+    _rollOverIfNeeded();
+    return isPremium || state.answeredCount < freeDailyAnswerLimit;
+  }
+
   /// Returns false without recording when a free user has used today's quota.
   Future<bool> tryRecordAnswer({
     required String questionId,

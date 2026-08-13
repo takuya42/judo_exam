@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../auth/presentation/auth_dialogs.dart';
+import '../../premium/application/premium_providers.dart';
 import '../../settings/application/settings_providers.dart';
 import '../application/required_exam_selector.dart';
 import '../domain/question.dart';
@@ -30,14 +32,25 @@ class _RequiredExamScreenState extends ConsumerState<RequiredExamScreen> {
 
   Future<void> _answer(int choiceIndex) async {
     if (_selectedChoiceIndex != null || _isSaving) return;
-    final isCorrect = _currentQuestion.isCorrect(choiceIndex);
-    setState(() {
-      _selectedChoiceIndex = choiceIndex;
-      if (isCorrect) _correctCount++;
-    });
-
     _isSaving = true;
     try {
+      final canAnswer = await ref
+          .read(dailyAnswerLimitControllerProvider.notifier)
+          .tryRecordAnswer(
+            questionId: _currentQuestion.storageId,
+            isPremium: ref.read(isPremiumProvider),
+          );
+      if (!canAnswer) {
+        if (mounted) await showFreeLimitDialog(context);
+        return;
+      }
+
+      if (!mounted) return;
+      final isCorrect = _currentQuestion.isCorrect(choiceIndex);
+      setState(() {
+        _selectedChoiceIndex = choiceIndex;
+        if (isCorrect) _correctCount++;
+      });
       await ref.read(learningDataControllerProvider.notifier).recordAnswer(
             question: _currentQuestion,
             isCorrect: isCorrect,
