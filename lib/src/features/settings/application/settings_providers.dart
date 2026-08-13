@@ -162,10 +162,34 @@ class LearningDataController extends StateNotifier<LearningSummary> {
 
   final SharedPreferences _preferences;
 
-  Future<void> recordAnswer({
+  /// Saves an answer submitted from the required-exam flow.
+  ///
+  /// Unlike [recordAnswer], this does not rely on question metadata to identify
+  /// the premium-only flow, so even malformed or manually constructed route
+  /// arguments cannot bypass the persistence guard.
+  Future<bool> recordRequiredExamAnswer({
     required Question question,
     required bool isCorrect,
+    required bool isPremium,
+  }) {
+    if (!isPremium) return Future.value(false);
+    return recordAnswer(
+      question: question,
+      isCorrect: isCorrect,
+      isPremium: true,
+    );
+  }
+
+  /// Saves an answer, unless it is a required-exam answer from a free account.
+  ///
+  /// Keeping this check in the persistence layer prevents a missed UI/route
+  /// guard from writing premium-only learning history.
+  Future<bool> recordAnswer({
+    required Question question,
+    required bool isCorrect,
+    required bool isPremium,
   }) async {
+    if (question.isRequired && !isPremium) return false;
     final history = [
       StudyHistoryEntry(
         id: '${DateTime.now().microsecondsSinceEpoch}_${question.id}',
@@ -183,6 +207,7 @@ class LearningDataController extends StateNotifier<LearningSummary> {
       correctStreak: isCorrect ? state.correctStreak + 1 : 0,
     );
     await _save(next);
+    return true;
   }
 
   Future<void> toggleFavorite(Question question) async {
