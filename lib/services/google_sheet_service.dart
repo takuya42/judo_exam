@@ -33,6 +33,7 @@ class GoogleSheetService {
     '生理学',
     '運動学',
     '病理学',
+    '公衆衛生学',
     '一般臨床医学',
     '外科学',
     '整形外科学',
@@ -56,11 +57,16 @@ class GoogleSheetService {
       final questions = <Question>[];
 
       for (final sheetName in sheetNames) {
-        questions.addAll(await _loadQuestionsFromSheet(sheetName));
+        if (sheetName == QuestionCategory.publicHealth.label) {
+          questions.addAll(
+            await _loadPublicHealthQuestionsFromCsv(
+              publicHealthQuestionsCsvUrl,
+            ),
+          );
+        } else {
+          questions.addAll(await _loadQuestionsFromSheet(sheetName));
+        }
       }
-      questions.addAll(
-        await _loadPublicHealthQuestionsFromCsv(publicHealthQuestionsCsvUrl),
-      );
 
       return List<Question>.unmodifiable(questions);
     } on GoogleSheetException {
@@ -278,7 +284,10 @@ class GoogleSheetService {
 
   Future<List<Question>> _loadPublicHealthQuestionsFromCsv(String csvUrl) async {
     const sheetName = '公衆衛生学';
-    final response = await _client.get(Uri.parse(csvUrl));
+    final uri = Uri.parse(csvUrl);
+    debugPrint('[$sheetName] 取得URL: $uri');
+    final response = await _client.get(uri);
+    debugPrint('[$sheetName] statusCode: ${response.statusCode}');
     if (response.statusCode != 200) {
       throw GoogleSheetException(
         'Google Sheetsから問題を取得できませんでした。'
@@ -311,24 +320,13 @@ class GoogleSheetService {
     final rows = _parseCsv(source)
         .map(_normalizedRow)
         .toList(growable: false);
+    debugPrint('[$sheetName] CSV行数: ${rows.length}');
     final headerRemoved = rows.isNotEmpty &&
         _isPublicHealthHeaderRow(rows.first);
     final indexedRows = rows.indexed
         .skip(headerRemoved ? 1 : 0)
         .where((entry) => !entry.$2.every((value) => value.isEmpty))
         .toList(growable: false);
-    final dataRows = indexedRows
-        .map((entry) => entry.$2)
-        .toList(growable: false);
-
-    debugPrint('sheet: $sheetName');
-    debugPrint('raw rows: ${rows.length}');
-    debugPrint('first raw row: ${rows.isEmpty ? <String>[] : rows.first}');
-    debugPrint('header removed: $headerRemoved');
-    debugPrint('data rows: ${dataRows.length}');
-    debugPrint(
-      'first data row: ${dataRows.isEmpty ? <String>[] : dataRows.first}',
-    );
 
     final questions = <Question>[];
     for (final entry in indexedRows) {
@@ -375,15 +373,7 @@ class GoogleSheetService {
         );
       }
     }
-    debugPrint('parsed questions: ${questions.length}');
-    if (questions.isNotEmpty) {
-      final first = questions.first;
-      debugPrint(
-        '[$sheetName] 最初の問題: id=${first.id}, '
-        'category=${first.category.label}, question=${first.questionText}, '
-        'correctAnswer=${first.correctChoiceIndex + 1}',
-      );
-    }
+    debugPrint('[$sheetName] 問題変換成功件数: ${questions.length}');
     return List<Question>.unmodifiable(questions);
   }
 
