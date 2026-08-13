@@ -62,7 +62,7 @@ class PremiumScreen extends ConsumerWidget {
       '学習履歴保存',
       'お気に入り保存',
       '正解率分析',
-      '今後追加される問題も利用可能',
+      '追加問題も利用可能',
     ];
 
     return Scaffold(
@@ -107,7 +107,7 @@ class PremiumScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  '国家試験対策を最後まで続けられるプレミアムプラン',
+                  '国家試験対策をもっと快適に',
                   style: TextStyle(
                     color: Colors.white.withOpacity(0.9),
                   ),
