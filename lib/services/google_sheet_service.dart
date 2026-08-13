@@ -53,21 +53,29 @@ class GoogleSheetService {
   );
 
   Future<List<Question>> loadQuestions() async {
+    debugPrint('[NormalQuestions] loadQuestions START');
+    debugPrint('[NormalQuestions] sheetNames: $sheetNames');
     try {
-      final questions = <Question>[];
-
+      final loads = <Future<List<Question>>>[];
       for (final sheetName in sheetNames) {
+        debugPrint('[NormalQuestions] loading sheet: $sheetName');
         if (sheetName == QuestionCategory.publicHealth.label) {
-          questions.addAll(
-            await _loadPublicHealthQuestionsFromCsv(
+          debugPrint('[公衆衛生学] LOAD START');
+          loads.add(
+            _loadPublicHealthQuestionsFromCsv(
               publicHealthQuestionsCsvUrl,
             ),
           );
         } else {
-          questions.addAll(await _loadQuestionsFromSheet(sheetName));
+          loads.add(_loadQuestionsFromSheet(sheetName));
         }
       }
 
+      // Start every subject before awaiting the results. A failure in an
+      // earlier sheet must not prevent later sheets (notably public health)
+      // from being requested, while Future.wait still reports any failure to
+      // the provider rather than displaying incomplete data.
+      final questions = (await Future.wait(loads)).expand((items) => items);
       return List<Question>.unmodifiable(questions);
     } on GoogleSheetException {
       rethrow;
