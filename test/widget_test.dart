@@ -7,12 +7,40 @@ import 'package:judo_exam/services/google_sheet_service.dart';
 import 'package:judo_exam/src/features/questions/domain/question.dart';
 import 'package:judo_exam/src/features/questions/domain/question_category.dart';
 import 'package:judo_exam/src/features/questions/domain/question_subcategory.dart';
+import 'package:judo_exam/src/features/questions/presentation/daily_free_answer_count_card.dart';
 import 'package:judo_exam/src/features/questions/presentation/question_list_screen.dart';
 import 'package:judo_exam/src/features/questions/presentation/subcategory_selection_screen.dart';
 import 'package:judo_exam/src/features/settings/application/settings_providers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  testWidgets('無料回答数と進捗、上限到達メッセージを表示する', (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(body: DailyFreeAnswerCountCard(answeredCount: 7)),
+      ),
+    );
+
+    expect(find.text('今日の回答数'), findsOneWidget);
+    expect(find.text('7 / 20問'), findsOneWidget);
+    expect(
+      tester.widget<LinearProgressIndicator>(
+        find.byType(LinearProgressIndicator),
+      ).value,
+      7 / 20,
+    );
+    expect(find.text('本日の無料回答上限に達しました'), findsNothing);
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(body: DailyFreeAnswerCountCard(answeredCount: 20)),
+      ),
+    );
+
+    expect(find.text('20 / 20問'), findsOneWidget);
+    expect(find.text('本日の無料回答上限に達しました'), findsOneWidget);
+  });
+
   test('通常問題の科目一覧に公衆衛生学を登録する', () {
     expect(
       GoogleSheetService.sheetNames,

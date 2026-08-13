@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../premium/application/premium_providers.dart';
 import '../../settings/application/settings_providers.dart';
 import '../domain/question.dart';
 import '../domain/question_category.dart';
 import '../domain/question_subcategory.dart';
+import 'daily_free_answer_count_card.dart';
 import 'question_exam_screen.dart';
 
 typedef QuestionShuffler = List<Question> Function(List<Question> questions);
@@ -28,7 +30,13 @@ class SubcategorySelectionScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(dailyAnswerLimitControllerProvider.notifier).refreshDate();
+    });
     final learning = ref.watch(learningDataControllerProvider);
+    final isPremium = ref.watch(isPremiumProvider);
+    final dailyAnswerCount =
+        ref.watch(dailyAnswerLimitControllerProvider).answeredCount;
     final categoryQuestions = questions
         .where((question) => question.category == category)
         .toList(growable: false);
@@ -36,54 +44,81 @@ class SubcategorySelectionScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: Text(category.label)),
       body: SafeArea(
-        child: ListView.separated(
-          padding: const EdgeInsets.all(16),
-          itemCount: subcategories.length + 1,
-          separatorBuilder: (_, _) => const SizedBox(height: 12),
-          itemBuilder: (context, index) {
-            if (index == 0) {
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('項目を選択', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
-                    const SizedBox(height: 6),
-                    Text('学習する項目を選んで、問題演習を始めましょう。', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
-                  ],
-                ),
-              );
-            }
+        child: Column(
+          children: [
+            if (!isPremium)
+              DailyFreeAnswerCountCard(answeredCount: dailyAnswerCount),
+            Expanded(
+              child: ListView.separated(
+                padding: const EdgeInsets.all(16),
+                itemCount: subcategories.length + 1,
+                separatorBuilder: (_, _) => const SizedBox(height: 12),
+                itemBuilder: (context, index) {
+                  if (index == 0) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '項目を選択',
+                            style: Theme.of(context)
+                                .textTheme
+                                .headlineSmall
+                                ?.copyWith(fontWeight: FontWeight.w800),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            '学習する項目を選んで、問題演習を始めましょう。',
+                            style: TextStyle(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
 
-            final subcategory = subcategories[index - 1];
-            final filtered = categoryQuestions
-                .where((question) => question.subcategory == subcategory.label)
-                .toList(growable: false);
-            final questionIds = filtered.map((question) => question.id).toSet();
-            final learnedIds = learning.history
-                .where((entry) => questionIds.contains(entry.questionId))
-                .map((entry) => entry.questionId)
-                .toSet();
-            final progress = filtered.isEmpty ? 0.0 : learnedIds.length / filtered.length;
+                  final subcategory = subcategories[index - 1];
+                  final filtered = categoryQuestions
+                      .where(
+                        (question) =>
+                            question.subcategory == subcategory.label,
+                      )
+                      .toList(growable: false);
+                  final questionIds =
+                      filtered.map((question) => question.id).toSet();
+                  final learnedIds = learning.history
+                      .where((entry) => questionIds.contains(entry.questionId))
+                      .map((entry) => entry.questionId)
+                      .toSet();
+                  final progress = filtered.isEmpty
+                      ? 0.0
+                      : learnedIds.length / filtered.length;
 
-            return _SubcategoryCard(
-              subcategory: subcategory,
-              questionCount: filtered.length,
-              learnedCount: learnedIds.length,
-              progress: progress,
-              onTap: () {
-                final shuffled = questionShuffler(filtered);
-                Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => QuestionExamScreen(
-                      questions: shuffled,
-                      title: subcategory.label,
-                    ),
-                  ),
-                );
-              },
-            );
-          },
+                  return _SubcategoryCard(
+                    subcategory: subcategory,
+                    questionCount: filtered.length,
+                    learnedCount: learnedIds.length,
+                    progress: progress,
+                    onTap: () {
+                      final shuffled = questionShuffler(filtered);
+                      Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => QuestionExamScreen(
+                            questions: shuffled,
+                            title: subcategory.label,
+                          ),
+                        ),
+                      );
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
         ),
       ),
     );

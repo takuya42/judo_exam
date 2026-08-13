@@ -6,6 +6,7 @@ import '../../settings/application/settings_providers.dart';
 import '../application/question_providers.dart';
 import '../domain/question.dart';
 import '../domain/question_category.dart';
+import 'daily_free_answer_count_card.dart';
 import 'question_exam_screen.dart';
 
 class QuestionListScreen extends ConsumerStatefulWidget {
@@ -95,7 +96,7 @@ class _QuestionListScreenState extends ConsumerState<QuestionListScreen> {
           },
         ),
         if (!ref.watch(isPremiumProvider))
-          _DailyFreeAnswerCount(
+          DailyFreeAnswerCountCard(
             answeredCount: ref
                 .watch(dailyAnswerLimitControllerProvider)
                 .answeredCount,
@@ -124,57 +125,6 @@ class _QuestionListScreenState extends ConsumerState<QuestionListScreen> {
                 ),
         ),
       ],
-    );
-  }
-}
-
-class _DailyFreeAnswerCount extends StatelessWidget {
-  const _DailyFreeAnswerCount({required this.answeredCount});
-
-  final int answeredCount;
-
-  @override
-  Widget build(BuildContext context) {
-    final progress = (answeredCount / freeDailyAnswerLimit)
-        .clamp(0.0, 1.0)
-        .toDouble();
-
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.fromLTRB(16, 4, 16, 4),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primaryContainer,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text('本日の回答数', style: Theme.of(context).textTheme.labelLarge),
-              const Spacer(),
-              Text(
-                '$answeredCount / $freeDailyAnswerLimit問',
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(999),
-            child: LinearProgressIndicator(
-              value: progress,
-              minHeight: 5,
-              backgroundColor: Theme.of(
-                context,
-              ).colorScheme.surfaceContainerHighest,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
