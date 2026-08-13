@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/foundation.dart';
+import 'package:judo_exam/core/constants/iap_constants.dart';
 
 import '../../auth/application/auth_providers.dart';
 import '../../auth/presentation/auth_dialogs.dart';
@@ -20,15 +21,10 @@ class SettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final colorScheme = Theme.of(context).colorScheme;
     final isPremium = ref.watch(isPremiumProvider);
-    final localizedPrice = isPremium
-        ? null
-        : ref.watch(premiumControllerProvider).localizedPrice;
     final premiumSubtitle = isPremium
         ? 'プレミアム利用中\n回答数無制限'
-        : [
-            if (localizedPrice != null) localizedPrice,
-            '回答数無制限ですべての問題を学習',
-          ].join('\n');
+        : '${IapConstants.premiumDisplayPrice}\n'
+            '回答数無制限ですべての問題を学習';
 
     return Scaffold(
       backgroundColor: colorScheme.surfaceContainerLowest,
