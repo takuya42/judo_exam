@@ -61,8 +61,8 @@ class RootNavigation extends ConsumerWidget {
               label: '問題',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.assignment_turned_in_outlined),
-              activeIcon: Icon(Icons.assignment_turned_in_rounded),
+              icon: Icon(Icons.quiz_outlined),
+              activeIcon: Icon(Icons.quiz),
               label: '必修問題',
             ),
             BottomNavigationBarItem(
