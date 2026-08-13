@@ -13,6 +13,19 @@ import 'package:judo_exam/src/features/settings/application/settings_providers.d
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  test('通常問題の科目一覧に公衆衛生学を登録する', () {
+    expect(
+      GoogleSheetService.sheetNames,
+      contains(QuestionCategory.publicHealth.label),
+    );
+    expect(
+      Uri.parse(
+        GoogleSheetService.publicHealthQuestionsCsvUrl,
+      ).queryParameters['gid'],
+      '1580177639',
+    );
+  });
+
   test('公衆衛生学CSVはヘッダーと空行を除き9列形式で解析する', () {
     final service = GoogleSheetService();
 
