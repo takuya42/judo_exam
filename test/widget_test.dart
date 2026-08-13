@@ -151,6 +151,30 @@ void main() {
     expect(publicHealth.correctChoiceIndex, 0);
   });
 
+  test('先行科目が失敗しても公衆衛生学の取得を開始する', () async {
+    var requestedPublicHealth = false;
+    final service = GoogleSheetService(
+      client: MockClient((request) async {
+        if (request.url.queryParameters['gid'] == '1580177639') {
+          requestedPublicHealth = true;
+          return http.Response(
+            'id,category,question,choice1,choice2,choice3,choice4,correctAnswer,explanation\n',
+            200,
+            headers: {'content-type': 'text/csv'},
+          );
+        }
+        return http.Response('sheet error', 500);
+      }),
+    );
+
+    await expectLater(
+      service.loadQuestions(),
+      throwsA(isA<GoogleSheetException>()),
+    );
+
+    expect(requestedPublicHealth, isTrue);
+  });
+
   test('不正なanswerではシート行番号・id・subcategory・実値を表示する', () async {
     final service = GoogleSheetService(
       client: MockClient((request) async {
