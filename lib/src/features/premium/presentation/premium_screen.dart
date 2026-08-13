@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:judo_exam/core/constants/iap_constants.dart';
 
 import '../application/premium_providers.dart';
 
@@ -10,7 +11,6 @@ class PremiumScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final premium = ref.watch(premiumControllerProvider);
     final isPremium = ref.watch(isPremiumProvider);
-    final localizedPrice = premium.localizedPrice;
 
     ref.listen(
       premiumControllerProvider.select((state) => state.messageId),
@@ -142,18 +142,17 @@ class PremiumScreen extends ConsumerWidget {
                       ),
                     ),
                   const Divider(height: 28),
-                  if (localizedPrice != null)
-                    Text(
-                      localizedPrice,
-                      style: Theme.of(context)
-                          .textTheme
-                          .headlineMedium
-                          ?.copyWith(
-                        fontWeight: FontWeight.w900,
-                        color: const Color(0xFF006C52),
-                      ),
+                  Text(
+                    IapConstants.premiumDisplayPrice,
+                    style: Theme.of(context)
+                        .textTheme
+                        .headlineMedium
+                        ?.copyWith(
+                      fontWeight: FontWeight.w900,
+                      color: const Color(0xFF006C52),
                     ),
-                  if (localizedPrice != null) const SizedBox(height: 14),
+                  ),
+                  const SizedBox(height: 14),
                   if (premium.isBusy) ...[
                     const CircularProgressIndicator(),
                     const SizedBox(height: 14),
