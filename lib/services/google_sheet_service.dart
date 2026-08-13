@@ -58,17 +58,7 @@ class GoogleSheetService {
     try {
       final loads = <Future<List<Question>>>[];
       for (final sheetName in sheetNames) {
-        debugPrint('[NormalQuestions] loading sheet: $sheetName');
-        if (sheetName == QuestionCategory.publicHealth.label) {
-          debugPrint('[公衆衛生学] LOAD START');
-          loads.add(
-            _loadPublicHealthQuestionsFromCsv(
-              publicHealthQuestionsCsvUrl,
-            ),
-          );
-        } else {
-          loads.add(_loadQuestionsFromSheet(sheetName));
-        }
+        loads.add(_loadNormalQuestionsForSubject(sheetName));
       }
 
       // Start every subject before awaiting the results. A failure in an
@@ -78,16 +68,45 @@ class GoogleSheetService {
       final questions = (await Future.wait(loads))
           .expand((items) => items)
           .toList(growable: false);
-      debugPrint('[NormalQuestions] 総取得件数: ${questions.length}');
+      debugPrint(
+        '[NormalQuestions] loadQuestions SUCCESS 総取得件数: '
+        '${questions.length}',
+      );
       return List<Question>.unmodifiable(questions);
-    } on GoogleSheetException {
+    } on GoogleSheetException catch (error, stackTrace) {
+      debugPrint('[NormalQuestions] loadQuestions ERROR: $error\n$stackTrace');
       rethrow;
-    } on FormatException catch (error) {
+    } on FormatException catch (error, stackTrace) {
+      debugPrint('[NormalQuestions] loadQuestions ERROR: $error\n$stackTrace');
       throw GoogleSheetException('問題データの形式が不正です: ${error.message}');
-    } on http.ClientException catch (error) {
+    } on http.ClientException catch (error, stackTrace) {
+      debugPrint('[NormalQuestions] loadQuestions ERROR: $error\n$stackTrace');
       throw GoogleSheetException('Google Sheetsに接続できませんでした: ${error.message}');
-    } catch (error) {
+    } catch (error, stackTrace) {
+      debugPrint('[NormalQuestions] loadQuestions ERROR: $error\n$stackTrace');
       throw GoogleSheetException('問題データの取得中にエラーが発生しました: $error');
+    }
+  }
+
+  Future<List<Question>> _loadNormalQuestionsForSubject(
+    String sheetName,
+  ) async {
+    debugPrint('[NormalQuestions] $sheetName START');
+    try {
+      final questions = sheetName == QuestionCategory.publicHealth.label
+          ? await _loadPublicHealthQuestionsFromCsv(
+              publicHealthQuestionsCsvUrl,
+            )
+          : await _loadQuestionsFromSheet(sheetName);
+      debugPrint(
+        '[NormalQuestions] $sheetName SUCCESS: ${questions.length}問',
+      );
+      return questions;
+    } catch (error, stackTrace) {
+      debugPrint(
+        '[NormalQuestions] $sheetName ERROR: $error\n$stackTrace',
+      );
+      rethrow;
     }
   }
 
