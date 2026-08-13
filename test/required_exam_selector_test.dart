@@ -6,7 +6,8 @@ import 'package:judo_exam/src/features/questions/domain/question.dart';
 import 'package:judo_exam/src/features/questions/domain/question_category.dart';
 
 void main() {
-  Question question(int id, QuestionCategory category, {bool required = true}) => Question(
+  Question question(int id, QuestionCategory category, {bool required = true}) =>
+      Question(
         id: '$id',
         category: category,
         questionText: '問題$id',
@@ -17,38 +18,93 @@ void main() {
         isRequired: required,
       );
 
-  test('50問を重複なしで抽出する', () {
-    final questions = List.generate(
-      100,
-      (index) => question(index, QuestionCategory.values[index % 11]),
-    );
+  List<Question> completePool({
+    int questionsPerSubject = 12,
+    bool required = true,
+  }) => [
+        for (final category in requiredExamSubjectCounts.keys)
+          for (var index = 0; index < questionsPerSubject; index++)
+            question(
+              category.index * 100 + index,
+              category,
+              required: required,
+            ),
+      ];
 
-    final selected = selectRequiredExamQuestions(questions, random: Random(1));
+  test('科目別の指定数で50問を重複なしに抽出する', () {
+    final selected = selectRequiredExamQuestions(
+      completePool(),
+      random: Random(1),
+    );
 
     expect(selected, hasLength(requiredExamQuestionCount));
     expect(selected.map((item) => item.storageId).toSet(), hasLength(50));
+    for (final entry in requiredExamSubjectCounts.entries) {
+      expect(
+        selected.where((item) => item.category == entry.key),
+        hasLength(entry.value),
+        reason: entry.key.label,
+      );
+    }
   });
 
-  test('複数科目から可能な限り均等に抽出する', () {
-    final questions = <Question>[
-      for (var index = 0; index < 90; index++) question(index, QuestionCategory.anatomy),
-      for (var index = 90; index < 100; index++) question(index, QuestionCategory.physiology),
-    ];
-
-    final selected = selectRequiredExamQuestions(questions, random: Random(2));
-    final physiologyCount = selected.where((item) => item.category == QuestionCategory.physiology).length;
-
-    expect(physiologyCount, 10);
-    expect(selected.where((item) => item.category == QuestionCategory.anatomy), hasLength(40));
-  });
-
-  test('重複IDと通常問題を除外し、登録数未満なら存在する問題だけを返す', () {
-    final required = question(1, QuestionCategory.anatomy);
+  test('専用シート由来ならisRequiredがfalseでも抽出対象にする', () {
     final selected = selectRequiredExamQuestions(
-      [required, required, question(2, QuestionCategory.physiology, required: false)],
-      random: Random(3),
+      completePool(required: false),
+      random: Random(2),
     );
 
-    expect(selected, [required]);
+    expect(selected, hasLength(requiredExamQuestionCount));
+    expect(selected.every((item) => item.isRequired == false), isTrue);
+  });
+
+  test('指定されていない科目は抽出対象にしない', () {
+    final pool = completePool()
+      ..add(question(9999, QuestionCategory.unknownRequired));
+
+    final selected = selectRequiredExamQuestions(pool, random: Random(20));
+
+    expect(selected.any((item) => item.id == '9999'), isFalse);
+  });
+
+  test('開始ごとの抽選で異なる問題セットを生成できる', () {
+    final pool = completePool(questionsPerSubject: 20);
+    final first = selectRequiredExamQuestions(pool, random: Random(10));
+    final second = selectRequiredExamQuestions(pool, random: Random(11));
+
+    expect(
+      first.map((item) => item.storageId).toSet(),
+      isNot(second.map((item) => item.storageId).toSet()),
+    );
+  });
+
+  test('1科目でも指定数に足りなければ50問の試験を作らない', () {
+    final pool = completePool();
+    pool.removeWhere(
+      (item) => item.category == QuestionCategory.relatedLaws && item.id != '1000',
+    );
+
+    expect(
+      () => selectRequiredExamQuestions(pool, random: Random(3)),
+      throwsA(
+        isA<StateError>().having(
+          (error) => error.message,
+          'message',
+          contains('関係法規'),
+        ),
+      ),
+    );
+  });
+
+  test('重複IDは1問として数える', () {
+    final pool = completePool();
+    final relatedLaw = pool.firstWhere(
+      (item) => item.category == QuestionCategory.relatedLaws,
+    );
+    pool
+      ..removeWhere((item) => item.category == QuestionCategory.relatedLaws)
+      ..addAll(List.filled(4, relatedLaw));
+
+    expect(requiredExamQuestionShortages(pool)[QuestionCategory.relatedLaws], 3);
   });
 }

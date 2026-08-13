@@ -33,8 +33,8 @@ class _RequiredExamLanding extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final availableCount = questions.map((question) => question.storageId).toSet().length;
-    final canStart = availableCount >= requiredExamQuestionCount;
+    final shortages = requiredExamQuestionShortages(questions);
+    final canStart = shortages.isEmpty;
 
     return SafeArea(
       child: Center(
@@ -93,7 +93,12 @@ class _RequiredExamLanding extends StatelessWidget {
                 ),
                 if (!canStart) ...[
                   const SizedBox(height: 14),
-                  Text('試験を開始するには必修問題が50問以上必要です。\n現在は$availableCount問登録されています。', textAlign: TextAlign.center, style: TextStyle(color: colorScheme.error)),
+                  Text(
+                    '試験を開始するには各科目の問題登録が必要です。\n'
+                    '${shortages.entries.map((entry) => '${entry.key.label} あと${entry.value}問').join('、')}',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: colorScheme.error),
+                  ),
                 ],
               ],
             ),
