@@ -10,6 +10,7 @@ void main() {
     final preferences = await SharedPreferences.getInstance();
     final controller = DailyAnswerLimitController(
       preferences,
+      uid: 'account-a',
       now: () => DateTime(2026, 8, 12, 10),
     );
 
@@ -32,6 +33,7 @@ void main() {
 
     final restored = DailyAnswerLimitController(
       preferences,
+      uid: 'account-a',
       now: () => DateTime(2026, 8, 12, 23),
     );
     expect(restored.state.answeredCount, freeDailyAnswerLimit);
@@ -45,6 +47,7 @@ void main() {
     final preferences = await SharedPreferences.getInstance();
     final controller = DailyAnswerLimitController(
       preferences,
+      uid: 'account-a',
       now: () => DateTime(2026, 8, 12),
     );
 
@@ -66,6 +69,7 @@ void main() {
     final preferences = await SharedPreferences.getInstance();
     final controller = DailyAnswerLimitController(
       preferences,
+      uid: 'account-a',
       now: () => DateTime(2026, 8, 12),
     );
 

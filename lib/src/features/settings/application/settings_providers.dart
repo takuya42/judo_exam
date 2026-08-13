@@ -1,10 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../auth/application/auth_providers.dart';
 import '../../questions/domain/question.dart';
 import '../../questions/domain/question_category.dart';
 
@@ -33,7 +35,12 @@ class AppSettingsController extends StateNotifier<ThemeMode> {
 
 final learningDataControllerProvider =
     StateNotifierProvider<LearningDataController, LearningSummary>((ref) {
-  return LearningDataController(ref.watch(sharedPreferencesProvider));
+  final uid = ref.watch(authStateProvider).valueOrNull?.uid;
+  return LearningDataController(
+    ref.watch(sharedPreferencesProvider),
+    uid: uid,
+    store: FirebaseLearningDataStore(ref.watch(firestoreProvider)),
+  );
 });
 
 const freeDailyAnswerLimit = 20;
@@ -42,7 +49,11 @@ final dailyAnswerLimitControllerProvider =
     StateNotifierProvider<DailyAnswerLimitController, DailyAnswerLimitState>((
       ref,
     ) {
-  return DailyAnswerLimitController(ref.watch(sharedPreferencesProvider));
+  final uid = ref.watch(authStateProvider).valueOrNull?.uid;
+  return DailyAnswerLimitController(
+    ref.watch(sharedPreferencesProvider),
+    uid: uid,
+  );
 });
 
 /// Persists the set of free-plan questions answered on the current local day.
@@ -50,16 +61,21 @@ final dailyAnswerLimitControllerProvider =
 /// A set is used deliberately: opening a question never changes this state and
 /// answering the same question again does not consume another free answer.
 class DailyAnswerLimitController extends StateNotifier<DailyAnswerLimitState> {
-  DailyAnswerLimitController(this._preferences, {DateTime Function()? now})
+  DailyAnswerLimitController(
+    this._preferences, {
+    required this.uid,
+    DateTime Function()? now,
+  })
       : _now = now ?? DateTime.now,
-        super(_readState(_preferences, (now ?? DateTime.now)())) {
-    unawaited(_persist(state));
+        super(_readState(_preferences, uid, (now ?? DateTime.now)())) {
+    if (uid != null) unawaited(_persist(state));
   }
 
   static const _dateKey = 'free_answer_date';
   static const _questionIdsKey = 'free_answer_question_ids';
 
   final SharedPreferences _preferences;
+  final String? uid;
   final DateTime Function() _now;
 
   /// Whether the user may start or continue answering under today's quota.
@@ -75,6 +91,7 @@ class DailyAnswerLimitController extends StateNotifier<DailyAnswerLimitState> {
     required String questionId,
     required bool isPremium,
   }) async {
+    if (uid == null) return false;
     _rollOverIfNeeded();
     if (isPremium) return true;
     if (state.questionIds.contains(questionId)) return true;
@@ -104,24 +121,30 @@ class DailyAnswerLimitController extends StateNotifier<DailyAnswerLimitState> {
   }
 
   Future<void> _persist(DailyAnswerLimitState value) async {
+    if (uid == null) return;
     await Future.wait([
-      _preferences.setString(_dateKey, value.date),
-      _preferences.setStringList(_questionIdsKey, value.questionIds.toList()),
+      _preferences.setString(_key(_dateKey, uid!), value.date),
+      _preferences.setStringList(
+        _key(_questionIdsKey, uid!),
+        value.questionIds.toList(),
+      ),
     ]);
   }
 
   static DailyAnswerLimitState _readState(
     SharedPreferences preferences,
+    String? uid,
     DateTime now,
   ) {
     final today = _dateString(now);
-    if (preferences.getString(_dateKey) != today) {
+    if (uid == null || preferences.getString(_key(_dateKey, uid)) != today) {
       return DailyAnswerLimitState(date: today);
     }
     return DailyAnswerLimitState(
       date: today,
       questionIds:
-          (preferences.getStringList(_questionIdsKey) ?? const <String>[])
+          (preferences.getStringList(_key(_questionIdsKey, uid)) ??
+                  const <String>[])
               .toSet(),
     );
   }
@@ -145,8 +168,21 @@ String _dateString(DateTime date) =>
     '${date.day.toString().padLeft(2, '0')}';
 
 class LearningDataController extends StateNotifier<LearningSummary> {
-  LearningDataController(this._preferences)
-      : super(LearningSummary.fromPreferences(_preferences));
+  LearningDataController(
+    this._preferences, {
+    this.uid,
+    LearningDataStore? store,
+  })  : _store = store,
+        super(
+          uid == null
+              ? const LearningSummary()
+              : LearningSummary.fromPreferences(_preferences, uid),
+        ) {
+    if (uid != null && store != null) {
+      _ready = _load();
+      unawaited(_ready);
+    }
+  }
 
   static const _historyKey = 'study_history';
   static const _favoritesKey = 'favorite_questions';
@@ -161,6 +197,29 @@ class LearningDataController extends StateNotifier<LearningSummary> {
   };
 
   final SharedPreferences _preferences;
+  final String? uid;
+  final LearningDataStore? _store;
+  Future<void> _ready = Future<void>.value();
+
+  Future<void> _load() async {
+    final currentUid = uid;
+    if (currentUid == null || _store == null) return;
+    try {
+      final remote = await _store.load(currentUid);
+      if (!mounted) return;
+      if (remote == null) {
+        await _store.save(currentUid, state);
+        return;
+      }
+      state = remote;
+      await _saveLocally(remote);
+    } on FirebaseException catch (error) {
+      debugPrint(
+        '[LearningDataController] Failed to load uid=$currentUid: '
+        '${error.code}',
+      );
+    }
+  }
 
   /// Saves an answer submitted from the required-exam flow.
   ///
@@ -189,6 +248,9 @@ class LearningDataController extends StateNotifier<LearningSummary> {
     required bool isCorrect,
     required bool isPremium,
   }) async {
+    if (uid == null) return false;
+    await _ready;
+    if (!mounted) return false;
     if (question.isRequired && !isPremium) return false;
     final history = [
       StudyHistoryEntry(
@@ -211,6 +273,9 @@ class LearningDataController extends StateNotifier<LearningSummary> {
   }
 
   Future<void> toggleFavorite(Question question) async {
+    if (uid == null) return;
+    await _ready;
+    if (!mounted) return;
     final favorites = [...state.favorites];
     final index = favorites.indexWhere(
       (favorite) => favorite.storageQuestionId == question.storageId ||
@@ -225,25 +290,70 @@ class LearningDataController extends StateNotifier<LearningSummary> {
   }
 
   Future<void> resetLearningData() async {
+    if (uid == null) {
+      state = const LearningSummary();
+      return;
+    }
+    await _ready;
+    if (!mounted) return;
     for (final key in resetKeys) {
-      await _preferences.remove(key);
+      await _preferences.remove(_key(key, uid!));
     }
     state = const LearningSummary();
+    await _store?.save(uid!, state);
   }
 
   Future<void> _save(LearningSummary summary) async {
+    if (uid == null) return;
     state = summary;
+    final writes = <Future<void>>[_saveLocally(summary)];
+    if (_store != null) writes.add(_store.save(uid!, summary));
+    await Future.wait(writes);
+  }
+
+  Future<void> _saveLocally(LearningSummary summary) async {
     await Future.wait([
       _preferences.setStringList(
-        _historyKey,
+        _key(_historyKey, uid!),
         summary.history.map((entry) => jsonEncode(entry.toJson())).toList(),
       ),
       _preferences.setStringList(
-        _favoritesKey,
-        summary.favorites.map((favorite) => jsonEncode(favorite.toJson())).toList(),
+        _key(_favoritesKey, uid!),
+        summary.favorites
+            .map((favorite) => jsonEncode(favorite.toJson()))
+            .toList(),
       ),
     ]);
   }
+}
+
+/// Persistence boundary for learning data. Implementations must use [uid] as
+/// part of every storage path; callers never read a shared learning document.
+abstract interface class LearningDataStore {
+  Future<LearningSummary?> load(String uid);
+  Future<void> save(String uid, LearningSummary summary);
+}
+
+class FirebaseLearningDataStore implements LearningDataStore {
+  const FirebaseLearningDataStore(this._firestore);
+
+  final FirebaseFirestore _firestore;
+
+  DocumentReference<Map<String, dynamic>> _document(String uid) =>
+      _firestore.collection('users').doc(uid).collection('learning').doc('data');
+
+  @override
+  Future<LearningSummary?> load(String uid) async {
+    final snapshot = await _document(uid).get();
+    final data = snapshot.data();
+    return data == null ? null : LearningSummary.fromJson(data);
+  }
+
+  @override
+  Future<void> save(String uid, LearningSummary summary) => _document(uid).set(
+        summary.toJson(),
+        SetOptions(merge: false),
+      );
 }
 
 @immutable
@@ -254,8 +364,14 @@ class LearningSummary {
     this.correctStreak = 0,
   });
 
-  factory LearningSummary.fromPreferences(SharedPreferences preferences) {
-    final history = (preferences.getStringList(LearningDataController._historyKey) ?? const <String>[])
+  factory LearningSummary.fromPreferences(
+    SharedPreferences preferences,
+    String uid,
+  ) {
+    final history = (preferences.getStringList(
+              _key(LearningDataController._historyKey, uid),
+            ) ??
+            const <String>[])
         .map(_decodeJson)
         .whereType<Map<String, dynamic>>()
         .map(StudyHistoryEntry.fromJson)
@@ -264,8 +380,27 @@ class LearningSummary {
 
     return LearningSummary(
       history: history,
-      favorites: (preferences.getStringList(LearningDataController._favoritesKey) ?? const <String>[])
+      favorites: (preferences.getStringList(
+                _key(LearningDataController._favoritesKey, uid),
+              ) ??
+              const <String>[])
           .map(_decodeJson)
+          .whereType<Map<String, dynamic>>()
+          .map(FavoriteQuestion.fromJson)
+          .toList(growable: false),
+      correctStreak: _calculateCurrentStreak(history),
+    );
+  }
+
+  factory LearningSummary.fromJson(Map<String, dynamic> json) {
+    final history = (json['history'] as List<dynamic>? ?? const <dynamic>[])
+        .whereType<Map<String, dynamic>>()
+        .map(StudyHistoryEntry.fromJson)
+        .toList(growable: false)
+      ..sort((a, b) => b.answeredAt.compareTo(a.answeredAt));
+    return LearningSummary(
+      history: history,
+      favorites: (json['favorites'] as List<dynamic>? ?? const <dynamic>[])
           .whereType<Map<String, dynamic>>()
           .map(FavoriteQuestion.fromJson)
           .toList(growable: false),
@@ -277,18 +412,28 @@ class LearningSummary {
   final List<FavoriteQuestion> favorites;
   final int correctStreak;
 
+  Map<String, dynamic> toJson() => {
+        'history': history.map((entry) => entry.toJson()).toList(),
+        'favorites': favorites.map((favorite) => favorite.toJson()).toList(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
+
   int get learnedQuestionCount => history.length;
   int get answeredCount => history.length;
   int get correctCount => history.where((entry) => entry.isCorrect).length;
-  int get correctRate => answeredCount == 0 ? 0 : (correctCount * 100 / answeredCount).round();
+  int get correctRate =>
+      answeredCount == 0 ? 0 : (correctCount * 100 / answeredCount).round();
 
   int categoryCorrectRate(QuestionCategory category) {
-    final entries = history.where((entry) => entry.category == category).toList(growable: false);
+    final entries = history
+        .where((entry) => entry.category == category)
+        .toList(growable: false);
     if (entries.isEmpty) return 0;
     return (entries.where((entry) => entry.isCorrect).length * 100 / entries.length).round();
   }
 
-  bool isFavorite(String questionId) => favorites.any((favorite) => favorite.questionId == questionId);
+  bool isFavorite(String questionId) =>
+      favorites.any((favorite) => favorite.questionId == questionId);
 
   bool isFavoriteQuestion(Question question) => favorites.any(
         (favorite) => favorite.storageQuestionId == question.storageId ||
@@ -404,6 +549,8 @@ Map<String, dynamic>? _decodeJson(String source) {
     return null;
   }
 }
+
+String _key(String base, String uid) => '${base}_$uid';
 
 int _calculateCurrentStreak(List<StudyHistoryEntry> history) {
   var streak = 0;
