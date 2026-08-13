@@ -27,27 +27,56 @@ class RootNavigation extends ConsumerWidget {
 
     return Scaffold(
       body: IndexedStack(index: selectedIndex, children: _screens),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: selectedIndex,
-        onTap: (index) {
-          final requiresLogin = index == 1 || index == 2 || index == 3;
-          final user = ref.read(authStateProvider).valueOrNull;
-          if (requiresLogin && user == null) {
-            showLoginRequiredDialog(context, ref);
-            return;
-          }
-          ref.read(selectedTabIndexProvider.notifier).select(index);
-        },
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'ホーム'),
-          BottomNavigationBarItem(icon: Icon(Icons.public), label: '問題'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.assignment_turned_in_outlined),
-            label: '必修問題',
+      bottomNavigationBar: DecoratedBox(
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          border: Border(
+            top: BorderSide(
+              color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.5),
+            ),
           ),
-          BottomNavigationBarItem(icon: Icon(Icons.star_outline), label: 'お気に入り'),
-          BottomNavigationBarItem(icon: Icon(Icons.settings_outlined), label: '設定'),
-        ],
+        ),
+        child: BottomNavigationBar(
+          elevation: 0,
+          backgroundColor: Colors.transparent,
+          currentIndex: selectedIndex,
+          onTap: (index) {
+            final requiresLogin = index == 1 || index == 2 || index == 3;
+            final user = ref.read(authStateProvider).valueOrNull;
+            if (requiresLogin && user == null) {
+              showLoginRequiredDialog(context, ref);
+              return;
+            }
+            ref.read(selectedTabIndexProvider.notifier).select(index);
+          },
+          items: const [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.home_outlined),
+              activeIcon: Icon(Icons.home_rounded),
+              label: 'ホーム',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.public_outlined),
+              activeIcon: Icon(Icons.public_rounded),
+              label: '問題',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.assignment_turned_in_outlined),
+              activeIcon: Icon(Icons.assignment_turned_in_rounded),
+              label: '必修問題',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.star_outline_rounded),
+              activeIcon: Icon(Icons.star_rounded),
+              label: 'お気に入り',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.settings_outlined),
+              activeIcon: Icon(Icons.settings_rounded),
+              label: '設定',
+            ),
+          ],
+        ),
       ),
     );
   }

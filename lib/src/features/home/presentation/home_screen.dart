@@ -40,12 +40,22 @@ class HomeScreen extends ConsumerWidget {
           data: (questions) => _HomeContent(questions: questions),
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _startRandomExam(context, ref, questionsAsync),
-        icon: const Icon(Icons.play_arrow_rounded),
-        label: const Text('問題を解く'),
-        backgroundColor: colorScheme.primary,
-        foregroundColor: colorScheme.onPrimary,
+      floatingActionButton: SizedBox(
+        height: 48,
+        child: FloatingActionButton.extended(
+          onPressed: () => _startRandomExam(context, ref, questionsAsync),
+          elevation: 2,
+          highlightElevation: 3,
+          extendedPadding: const EdgeInsets.symmetric(horizontal: 18),
+          icon: const Icon(Icons.play_arrow_rounded, size: 21),
+          label: const Text(
+            '問題を解く',
+            style: TextStyle(fontWeight: FontWeight.w700),
+          ),
+          backgroundColor: colorScheme.primary,
+          foregroundColor: colorScheme.onPrimary,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        ),
       ),
     );
   }
@@ -77,11 +87,15 @@ class _HomeContent extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final categoryCounts = _categoryCounts(questions);
+    // 未対応の必修科目はデータとして保持し、ホームの科目一覧だけから除外する。
+    final visibleCategories = QuestionCategory.values
+        .where((category) => category != QuestionCategory.unknownRequired)
+        .toList(growable: false);
     final totalQuestionCount = questions.length;
     final learningSummary = ref.watch(learningDataControllerProvider);
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 96),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 88),
       children: [
         const _HeroCard(),
         const SizedBox(height: 16),
@@ -100,15 +114,15 @@ class _HomeContent extends ConsumerWidget {
         GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          itemCount: QuestionCategory.values.length,
+          itemCount: visibleCategories.length,
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 2,
             mainAxisSpacing: 12,
             crossAxisSpacing: 12,
-            childAspectRatio: 1.08,
+            childAspectRatio: 1.28,
           ),
           itemBuilder: (context, index) {
-            final category = QuestionCategory.values[index];
+            final category = visibleCategories[index];
             final subcategories = subcategoriesByCategory[category];
             return _CategoryCard(
               category: category,
@@ -139,14 +153,14 @@ class _HomeContent extends ConsumerWidget {
             );
           },
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 32),
         const _SectionHeader(
           icon: Icons.verified_rounded,
           title: 'カテゴリ別 正解率',
           subtitle: '解答データが蓄積されると科目別に自動更新されます',
         ),
         const SizedBox(height: 12),
-        _AccuracyCard(categories: QuestionCategory.values),
+        _AccuracyCard(categories: visibleCategories),
         const SizedBox(height: 24),
         const _LearningMenu(),
       ],
@@ -172,41 +186,31 @@ class _HeroCard extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
-        gradient: const LinearGradient(
-          colors: [Color(0xFF00795A), Color(0xFF21A67A)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF00795A).withOpacity(0.22),
-            blurRadius: 24,
-            offset: const Offset(0, 12),
-          ),
-        ],
+        color: const Color(0xFFF1F8F4),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFDCEBE3)),
       ),
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.18),
-              borderRadius: BorderRadius.circular(16),
+              color: const Color(0xFFDCEFE5),
+              shape: BoxShape.circle,
             ),
-            child: const Icon(
+            child: Icon(
               Icons.health_and_safety_rounded,
-              color: Colors.white,
-              size: 30,
+              color: colorScheme.primary,
+              size: 26,
             ),
           ),
           const SizedBox(height: 18),
           Text(
             '国家試験合格へ、\n今日の一問から。',
             style: textTheme.headlineSmall?.copyWith(
-              color: Colors.white,
+              color: colorScheme.onSurface,
               fontWeight: FontWeight.w800,
               height: 1.25,
             ),
@@ -215,7 +219,7 @@ class _HeroCard extends StatelessWidget {
           Text(
             '医療基礎から柔道整復理論まで、科目別に弱点を見える化して効率よく学習できます。',
             style: textTheme.bodyMedium?.copyWith(
-              color: colorScheme.onPrimary.withOpacity(0.88),
+              color: colorScheme.onSurfaceVariant,
               height: 1.5,
             ),
           ),
@@ -347,21 +351,26 @@ class _CategoryCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.fromLTRB(13, 12, 12, 12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
-                  _IconBadge(icon: _categoryIcon(category), size: 36),
+                  _IconBadge(
+                    icon: _categoryIcon(category),
+                    size: 34,
+                    circular: true,
+                  ),
                   const Spacer(),
                   Icon(
                     Icons.chevron_right_rounded,
-                    color: colorScheme.onSurfaceVariant,
+                    size: 20,
+                    color: colorScheme.onSurfaceVariant.withOpacity(0.7),
                   ),
                 ],
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
               Expanded(
                 child: Align(
                   alignment: Alignment.topLeft,
@@ -382,9 +391,9 @@ class _CategoryCard extends StatelessWidget {
                 '$questionCount問',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: colorScheme.primary,
-                  fontWeight: FontWeight.w800,
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ],
@@ -404,6 +413,7 @@ class _AccuracyCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final learningSummary = ref.watch(learningDataControllerProvider);
     return _MedicalCard(
+      padding: const EdgeInsets.all(14),
       child: Column(
         children: [
           for (final category in categories) ...[
@@ -411,7 +421,7 @@ class _AccuracyCard extends ConsumerWidget {
               category: category,
               accuracy: learningSummary.categoryCorrectRate(category),
             ),
-            if (category != categories.last) const SizedBox(height: 14),
+            if (category != categories.last) const SizedBox(height: 12),
           ],
         ],
       ),
@@ -432,9 +442,16 @@ class _AccuracyRow extends StatelessWidget {
       children: [
         Row(
           children: [
-            Icon(_categoryIcon(category), size: 18, color: colorScheme.primary),
-            const SizedBox(width: 8),
-            Expanded(child: Text(category.label)),
+            _IconBadge(icon: _categoryIcon(category), size: 28, circular: true),
+            const SizedBox(width: 9),
+            Expanded(
+              child: Text(
+                category.label,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
             Text(
               '$accuracy%',
               style: const TextStyle(fontWeight: FontWeight.w700),
@@ -446,7 +463,7 @@ class _AccuracyRow extends StatelessWidget {
           borderRadius: BorderRadius.circular(999),
           child: LinearProgressIndicator(
             value: accuracy / 100,
-            minHeight: 8,
+            minHeight: 6,
             backgroundColor: const Color(0xFFE3F1EA),
           ),
         ),
@@ -568,15 +585,15 @@ class _SectionHeader extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _IconBadge(icon: icon, size: 34),
-        const SizedBox(width: 10),
+        _IconBadge(icon: icon, size: 30, circular: true),
+        const SizedBox(width: 9),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 title,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w800,
                 ),
               ),
@@ -585,7 +602,9 @@ class _SectionHeader extends StatelessWidget {
                 Text(
                   subtitle,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurfaceVariant.withOpacity(0.78),
                   ),
                 ),
               ],
@@ -608,14 +627,19 @@ class _MedicalCard extends StatelessWidget {
     return Container(
       padding: padding,
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
+        color: Color.alphaBlend(
+          Theme.of(context).colorScheme.primary.withOpacity(0.018),
+          Theme.of(context).colorScheme.surface,
+        ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.55)),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.45),
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
+            color: Colors.black.withOpacity(0.035),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
@@ -625,10 +649,15 @@ class _MedicalCard extends StatelessWidget {
 }
 
 class _IconBadge extends StatelessWidget {
-  const _IconBadge({required this.icon, this.size = 44});
+  const _IconBadge({
+    required this.icon,
+    this.size = 44,
+    this.circular = false,
+  });
 
   final IconData icon;
   final double size;
+  final bool circular;
 
   @override
   Widget build(BuildContext context) {
@@ -637,9 +666,14 @@ class _IconBadge extends StatelessWidget {
       height: size,
       decoration: BoxDecoration(
         color: const Color(0xFFE3F6EE),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: circular ? null : BorderRadius.circular(14),
+        shape: circular ? BoxShape.circle : BoxShape.rectangle,
       ),
-      child: Icon(icon, color: Theme.of(context).colorScheme.primary, size: size * 0.55),
+      child: Icon(
+        icon,
+        color: Theme.of(context).colorScheme.primary,
+        size: size * 0.55,
+      ),
     );
   }
 }
