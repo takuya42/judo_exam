@@ -77,3 +77,30 @@ Future<void> showFreeLimitDialog(BuildContext context) {
     ),
   );
 }
+
+/// Explains that the required exam is a premium-only feature.
+Future<void> showRequiredExamPremiumDialog(BuildContext context) {
+  return showDialog<void>(
+    context: context,
+    builder: (dialogContext) => AlertDialog(
+      icon: const Icon(Icons.workspace_premium_rounded),
+      title: const Text('必修問題はプレミアム限定です'),
+      content: const Text('プレミアムプランなら、必修問題50問に回答できます。'),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(dialogContext).pop(),
+          child: const Text('閉じる'),
+        ),
+        FilledButton(
+          onPressed: () {
+            Navigator.of(dialogContext).pop();
+            Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const PremiumScreen()),
+            );
+          },
+          child: const Text('プレミアムプランを見る'),
+        ),
+      ],
+    ),
+  );
+}

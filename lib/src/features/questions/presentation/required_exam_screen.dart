@@ -34,14 +34,9 @@ class _RequiredExamScreenState extends ConsumerState<RequiredExamScreen> {
     if (_selectedChoiceIndex != null || _isSaving) return;
     _isSaving = true;
     try {
-      final canAnswer = await ref
-          .read(dailyAnswerLimitControllerProvider.notifier)
-          .tryRecordAnswer(
-            questionId: _currentQuestion.storageId,
-            isPremium: ref.read(isPremiumProvider),
-          );
-      if (!canAnswer) {
-        if (mounted) await showFreeLimitDialog(context);
+      final isPremium = ref.read(isPremiumProvider);
+      if (!isPremium) {
+        if (mounted) await showRequiredExamPremiumDialog(context);
         return;
       }
 
@@ -51,9 +46,12 @@ class _RequiredExamScreenState extends ConsumerState<RequiredExamScreen> {
         _selectedChoiceIndex = choiceIndex;
         if (isCorrect) _correctCount++;
       });
-      await ref.read(learningDataControllerProvider.notifier).recordAnswer(
+      await ref
+          .read(learningDataControllerProvider.notifier)
+          .recordRequiredExamAnswer(
             question: _currentQuestion,
             isCorrect: isCorrect,
+            isPremium: isPremium,
           );
     } finally {
       _isSaving = false;
@@ -74,6 +72,36 @@ class _RequiredExamScreenState extends ConsumerState<RequiredExamScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Guard the destination itself as well as the landing-page button. This
+    // also reacts if the account loses premium status while the exam is open.
+    if (!ref.watch(isPremiumProvider)) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('必修問題')),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.lock_rounded, size: 56),
+                const SizedBox(height: 16),
+                Text(
+                  '必修問題はプレミアム限定です',
+                  style: Theme.of(context).textTheme.titleLarge,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 20),
+                FilledButton(
+                  onPressed: () => showRequiredExamPremiumDialog(context),
+                  child: const Text('プレミアムプランを見る'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     if (_isFinished) {
       return _RequiredExamResult(correctCount: _correctCount, totalCount: widget.questions.length);
     }

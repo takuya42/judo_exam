@@ -45,11 +45,16 @@ class _QuestionExamScreenState extends ConsumerState<QuestionExamScreen> {
     _isAnswering = true;
 
     try {
+      final isPremium = ref.read(isPremiumProvider);
+      if (question.isRequired && !isPremium) {
+        if (mounted) await showRequiredExamPremiumDialog(context);
+        return;
+      }
       final canAnswer = await ref
           .read(dailyAnswerLimitControllerProvider.notifier)
           .tryRecordAnswer(
             questionId: question.storageId,
-            isPremium: ref.read(isPremiumProvider),
+            isPremium: isPremium,
           );
       if (!canAnswer) {
         if (mounted) await showFreeLimitDialog(context);
@@ -61,6 +66,7 @@ class _QuestionExamScreenState extends ConsumerState<QuestionExamScreen> {
       await ref.read(learningDataControllerProvider.notifier).recordAnswer(
             question: question,
             isCorrect: question.isCorrect(choiceIndex),
+            isPremium: isPremium,
           );
     } finally {
       _isAnswering = false;

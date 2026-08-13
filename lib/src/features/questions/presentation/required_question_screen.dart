@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../auth/presentation/auth_dialogs.dart';
 import '../../premium/application/premium_providers.dart';
-import '../../settings/application/settings_providers.dart';
 import '../application/question_providers.dart';
 import '../application/required_exam_selector.dart';
 import '../domain/question.dart';
@@ -83,13 +82,10 @@ class _RequiredExamLanding extends ConsumerWidget {
                   height: 58,
                   child: FilledButton.icon(
                     onPressed: canStart
-                        ? () async {
+                          ? () async {
                             final isPremium = ref.read(isPremiumProvider);
-                            final canAnswer = ref
-                                .read(dailyAnswerLimitControllerProvider.notifier)
-                                .canAnswer(isPremium: isPremium);
-                            if (!canAnswer) {
-                              await showFreeLimitDialog(context);
+                            if (!isPremium) {
+                              await showRequiredExamPremiumDialog(context);
                               return;
                             }
                             if (!context.mounted) return;
