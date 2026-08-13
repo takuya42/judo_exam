@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:judo_exam/src/shared/widgets/auto_size_text.dart';
 
+import '../../announcements/application/announcement_providers.dart';
+import '../../announcements/presentation/announcements_screen.dart';
 import '../../auth/application/auth_providers.dart';
 import '../../auth/presentation/auth_dialogs.dart';
 import '../../navigation/application/navigation_provider.dart';
@@ -26,9 +28,15 @@ class HomeScreen extends ConsumerWidget {
       appBar: AppBar(
         title: const Text('柔道整復師国試対策'),
         actions: [
+          _AnnouncementButton(
+            hasUnread: ref.watch(hasUnreadAnnouncementsProvider),
+          ),
           IconButton(
             tooltip: '問題を再取得',
-            onPressed: () => ref.invalidate(questionsProvider),
+            onPressed: () {
+              ref.invalidate(questionsProvider);
+              ref.invalidate(announcementsProvider);
+            },
             icon: const Icon(Icons.sync_rounded),
           ),
         ],
@@ -59,6 +67,24 @@ class HomeScreen extends ConsumerWidget {
       ),
     );
   }
+}
+
+class _AnnouncementButton extends StatelessWidget {
+  const _AnnouncementButton({required this.hasUnread});
+  final bool hasUnread;
+  @override
+  Widget build(BuildContext context) => IconButton(
+    tooltip: 'お知らせ',
+    onPressed: () => Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => const AnnouncementsScreen()),
+    ),
+    icon: Badge(
+      isLabelVisible: hasUnread,
+      smallSize: 8,
+      backgroundColor: Theme.of(context).colorScheme.error,
+      child: const Icon(Icons.notifications_none_rounded),
+    ),
+  );
 }
 
 void _startRandomExam(

@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/foundation.dart';
 import 'package:judo_exam/core/constants/iap_constants.dart';
 
+import '../../announcements/application/announcement_providers.dart';
 import '../../auth/application/auth_providers.dart';
 import '../../auth/presentation/auth_dialogs.dart';
 import '../../auth/presentation/email_login_screen.dart';
@@ -104,6 +105,7 @@ class SettingsScreen extends ConsumerWidget {
                 onTap: () {
                   ref.invalidate(questionsProvider);
                   ref.invalidate(requiredQuestionsProvider);
+                  ref.invalidate(announcementsProvider);
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('問題データを再取得しています')),
                   );
