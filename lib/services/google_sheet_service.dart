@@ -375,15 +375,10 @@ class GoogleSheetService {
         // The gid is dedicated to public health. Do not allow an empty or
         // accidentally copied category cell to classify this row elsewhere.
         rowForQuestion[1] = sheetName;
-        final rawAnswer = rowForQuestion[7];
-        final answer = int.tryParse(rawAnswer.toString().trim());
-        if (answer == null) {
-          throw FormatException('answer は数値である必要があります: $rawAnswer');
-        }
-        if (answer < 1 || answer > 4) {
-          throw FormatException('answer は1〜4である必要があります: $rawAnswer');
-        }
-        rowForQuestion[7] = answer.toString();
+        _normalizeNormalQuestionIntegers(
+          rowForQuestion,
+          hasSubcategory: false,
+        );
         questions.add(
           Question.fromSheetRow(rowForQuestion, hasSubcategory: false),
         );
@@ -544,10 +539,46 @@ class GoogleSheetService {
     // Keeping this decision independent of row length prevents optional
     // columns in a legacy sheet from shifting question and answer fields.
     final hasSubcategory = _subcategorySheetNames.contains(sheetName);
+    _normalizeNormalQuestionIntegers(
+      valuesWithCategory,
+      hasSubcategory: hasSubcategory,
+    );
     return Question.fromSheetRow(
       valuesWithCategory,
       hasSubcategory: hasSubcategory,
     );
+  }
+
+  void _normalizeNormalQuestionIntegers(
+    List<String> values, {
+    required bool hasSubcategory,
+  }) {
+    final answerIndex = hasSubcategory ? 8 : 7;
+    final id = _parseIntegerEquivalent(values[0], fieldName: 'id');
+    final answer = _parseIntegerEquivalent(
+      values[answerIndex],
+      fieldName: 'answer',
+    );
+    if (answer < 1 || answer > 4) {
+      throw FormatException(
+        'answer は1〜4である必要があります: ${values[answerIndex]}',
+      );
+    }
+
+    values[0] = id.toString();
+    values[answerIndex] = answer.toString();
+  }
+
+  int _parseIntegerEquivalent(String text, {required String fieldName}) {
+    final normalized = text.trim();
+    final value = double.tryParse(normalized);
+    if (value == null || !value.isFinite) {
+      throw FormatException('$fieldName は数値である必要があります: $text');
+    }
+    if (value != value.truncateToDouble()) {
+      throw FormatException('$fieldName は整数である必要があります: $text');
+    }
+    return value.toInt();
   }
 
   String _rowErrorMessage(
