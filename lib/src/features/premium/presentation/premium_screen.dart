@@ -10,6 +10,7 @@ class PremiumScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final premium = ref.watch(premiumControllerProvider);
     final isPremium = ref.watch(isPremiumProvider);
+    final localizedPrice = premium.product?.price;
 
     ref.listen(
       premiumControllerProvider.select((state) => state.messageId),
@@ -56,6 +57,7 @@ class PremiumScreen extends ConsumerWidget {
 
     const benefits = [
       '全問題解放',
+      '必修問題も回答可能',
       '回答回数無制限',
       '学習履歴保存',
       'お気に入り保存',
@@ -140,9 +142,9 @@ class PremiumScreen extends ConsumerWidget {
                       ),
                     ),
                   const Divider(height: 28),
-                  if (premium.product != null)
+                  if (localizedPrice != null)
                     Text(
-                      premium.product!.price,
+                      localizedPrice,
                       style: Theme.of(context)
                           .textTheme
                           .headlineMedium
@@ -151,7 +153,7 @@ class PremiumScreen extends ConsumerWidget {
                         color: const Color(0xFF006C52),
                       ),
                     ),
-                  if (premium.product != null) const SizedBox(height: 14),
+                  if (localizedPrice != null) const SizedBox(height: 14),
                   if (premium.isBusy) ...[
                     const CircularProgressIndicator(),
                     const SizedBox(height: 14),
