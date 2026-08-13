@@ -10,7 +10,7 @@ class PremiumScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final premium = ref.watch(premiumControllerProvider);
     final isPremium = ref.watch(isPremiumProvider);
-    final localizedPrice = premium.product?.price;
+    final localizedPrice = premium.localizedPrice;
 
     ref.listen(
       premiumControllerProvider.select((state) => state.messageId),

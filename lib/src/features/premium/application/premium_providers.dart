@@ -51,6 +51,12 @@ class PremiumState {
 
   bool get isBusy => isLoading || isPurchasePending;
 
+  /// Store-localized price returned for the current App Store storefront.
+  ///
+  /// Keeping this nullable prevents the UI from substituting a hard-coded
+  /// price while product details are still being fetched (or failed to load).
+  String? get localizedPrice => product?.price;
+
   PremiumState copyWith({
     bool? isLoading,
     bool? isPurchasePending,
