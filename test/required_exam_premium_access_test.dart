@@ -48,7 +48,11 @@ void main() {
     await tester.tap(find.text('必修問題を開始'));
     await tester.pumpAndSettle();
 
-    expect(find.text('必修問題はプレミアム限定です'), findsOneWidget);
+    expect(find.text('必修問題はプレミアム限定'), findsOneWidget);
+    expect(find.text('プレミアムなら必修問題50問に挑戦できます'), findsOneWidget);
+    expect(find.byIcon(Icons.workspace_premium_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.close_rounded), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, 'プレミアムプランを見る'), findsOneWidget);
     expect(find.text('1 / 50'), findsNothing);
   });
 
