@@ -49,9 +49,12 @@ void main() {
     );
 
     expect(controller.state.answeredCount, 0);
-    for (var index = 0; index < 25; index++) {
+    for (var index = 0; index < 50; index++) {
       expect(
-        await controller.tryRecordAnswer(questionId: 'premium$index', isPremium: true),
+        await controller.tryRecordAnswer(
+          questionId: 'required_premium_$index',
+          isPremium: true,
+        ),
         isTrue,
       );
     }
@@ -93,5 +96,7 @@ void main() {
       ),
       isFalse,
     );
+    expect(controller.canAnswer(isPremium: false), isFalse);
+    expect(controller.canAnswer(isPremium: true), isTrue);
   });
 }

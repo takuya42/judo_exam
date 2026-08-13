@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../auth/presentation/auth_dialogs.dart';
+import '../../premium/application/premium_providers.dart';
+import '../../settings/application/settings_providers.dart';
 import '../application/question_providers.dart';
 import '../application/required_exam_selector.dart';
 import '../domain/question.dart';
@@ -25,13 +28,13 @@ class RequiredQuestionScreen extends ConsumerWidget {
   }
 }
 
-class _RequiredExamLanding extends StatelessWidget {
+class _RequiredExamLanding extends ConsumerWidget {
   const _RequiredExamLanding({required this.questions});
 
   final List<Question> questions;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final colorScheme = Theme.of(context).colorScheme;
     final shortages = requiredExamQuestionShortages(questions);
     final canStart = shortages.isEmpty;
@@ -80,7 +83,16 @@ class _RequiredExamLanding extends StatelessWidget {
                   height: 58,
                   child: FilledButton.icon(
                     onPressed: canStart
-                        ? () {
+                        ? () async {
+                            final isPremium = ref.read(isPremiumProvider);
+                            final canAnswer = ref
+                                .read(dailyAnswerLimitControllerProvider.notifier)
+                                .canAnswer(isPremium: isPremium);
+                            if (!canAnswer) {
+                              await showFreeLimitDialog(context);
+                              return;
+                            }
+                            if (!context.mounted) return;
                             final examQuestions = selectRequiredExamQuestions(questions);
                             Navigator.of(context).push(MaterialPageRoute<void>(
                               builder: (_) => RequiredExamScreen(questions: examQuestions),
