@@ -1,27 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../premium/application/premium_providers.dart';
-import '../../settings/application/settings_providers.dart';
 import '../application/question_providers.dart';
+import '../application/required_exam_selector.dart';
 import '../domain/question.dart';
-import '../domain/question_category.dart';
-import 'question_exam_screen.dart';
+import 'required_exam_screen.dart';
 
-class RequiredQuestionScreen extends ConsumerStatefulWidget {
+class RequiredQuestionScreen extends ConsumerWidget {
   const RequiredQuestionScreen({super.key});
 
   @override
-  ConsumerState<RequiredQuestionScreen> createState() =>
-      _RequiredQuestionScreenState();
-}
-
-class _RequiredQuestionScreenState
-    extends ConsumerState<RequiredQuestionScreen> {
-  QuestionCategory? _category;
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final questions = ref.watch(requiredQuestionsProvider);
     return Scaffold(
       appBar: AppBar(title: const Text('必修問題')),
@@ -30,125 +19,108 @@ class _RequiredQuestionScreenState
         error: (_, _) => _RequiredError(
           onRetry: () => ref.invalidate(requiredQuestionsProvider),
         ),
-        data: _content,
+        data: (questions) => _RequiredExamLanding(questions: questions),
       ),
-    );
-  }
-
-  Widget _content(List<Question> questions) {
-    if (questions.isEmpty) return const Center(child: Text('必修問題がありません'));
-    final categories = questions.map((q) => q.category).toSet().toList();
-    final filtered = questions
-        .where((q) => _category == null || q.category == _category)
-        .toList(growable: false);
-    final summary = ref.watch(learningDataControllerProvider);
-    final learnedIds = summary.history
-        .where((entry) => entry.questionType == 'required')
-        .map((entry) => entry.storageQuestionId)
-        .toSet();
-    final learned = questions.where((q) => learnedIds.contains(q.storageId)).length;
-    final progress = learned / questions.length;
-
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-          child: Card(
-            margin: EdgeInsets.zero,
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('必修問題', style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
-                  const SizedBox(height: 4),
-                  Text('国家試験の必修問題を学習', style: Theme.of(context).textTheme.bodyLarge),
-                  const SizedBox(height: 20),
-                  Text('学習進捗', style: Theme.of(context).textTheme.labelLarge),
-                  const SizedBox(height: 5),
-                  Row(children: [
-                    Text('$learned / ${questions.length}問', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
-                    const Spacer(),
-                    Text('${(progress * 100).round()}%'),
-                  ]),
-                  const SizedBox(height: 10),
-                  ClipRRect(borderRadius: BorderRadius.circular(99), child: LinearProgressIndicator(value: progress, minHeight: 8)),
-                ],
-              ),
-            ),
-          ),
-        ),
-        SizedBox(
-          height: 44,
-          child: ListView.separated(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            scrollDirection: Axis.horizontal,
-            itemCount: categories.length + 1,
-            separatorBuilder: (_, _) => const SizedBox(width: 8),
-            itemBuilder: (_, index) {
-              final category = index == 0 ? null : categories[index - 1];
-              final selected = category == _category;
-              return FilterChip(
-                label: Text(category?.label ?? 'すべて'),
-                selected: selected,
-                showCheckmark: false,
-                selectedColor: Theme.of(context).colorScheme.primary,
-                labelStyle: TextStyle(color: selected ? Theme.of(context).colorScheme.onPrimary : Theme.of(context).colorScheme.onSurface),
-                onSelected: (_) => setState(() => _category = category),
-              );
-            },
-          ),
-        ),
-        if (!ref.watch(isPremiumProvider))
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 6, 20, 2),
-            child: Row(children: [
-              const Text('本日の回答数'),
-              const Spacer(),
-              Text('${ref.watch(dailyAnswerLimitControllerProvider).answeredCount} / $freeDailyAnswerLimit問', style: const TextStyle(fontWeight: FontWeight.w700)),
-            ]),
-          ),
-        Expanded(
-          child: filtered.isEmpty
-              ? const Center(child: Text('必修問題がありません'))
-              : ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
-                  itemCount: filtered.length,
-                  separatorBuilder: (_, _) => const SizedBox(height: 10),
-                  itemBuilder: (_, index) => _RequiredQuestionCard(
-                    question: filtered[index],
-                    onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
-                      builder: (_) => QuestionExamScreen(questions: filtered.sublist(index), title: '必修問題'),
-                    )),
-                  ),
-                ),
-        ),
-      ],
     );
   }
 }
 
-class _RequiredQuestionCard extends StatelessWidget {
-  const _RequiredQuestionCard({required this.question, required this.onTap});
-  final Question question;
-  final VoidCallback onTap;
+class _RequiredExamLanding extends StatelessWidget {
+  const _RequiredExamLanding({required this.questions});
+
+  final List<Question> questions;
 
   @override
-  Widget build(BuildContext context) => Card(
-    margin: EdgeInsets.zero,
-    clipBehavior: Clip.antiAlias,
-    child: ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      onTap: onTap,
-      title: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(question.category.label, style: TextStyle(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.w700)),
-        const SizedBox(height: 7),
-        Text(question.questionText, maxLines: 2, overflow: TextOverflow.ellipsis),
-      ]),
-      subtitle: question.subcategory.isEmpty ? null : Padding(padding: const EdgeInsets.only(top: 7), child: Text('# ${question.subcategory}')),
-      trailing: const Icon(Icons.chevron_right_rounded),
-    ),
-  );
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final availableCount = questions.map((question) => question.storageId).toSet().length;
+    final canStart = availableCount >= requiredExamQuestionCount;
+
+    return SafeArea(
+      child: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 560),
+            child: Column(
+              children: [
+                Container(
+                  width: 76,
+                  height: 76,
+                  decoration: BoxDecoration(
+                    color: colorScheme.primaryContainer,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(Icons.workspace_premium_rounded, size: 40, color: colorScheme.primary),
+                ),
+                const SizedBox(height: 20),
+                Text('必修問題', style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w900)),
+                const SizedBox(height: 8),
+                Text('国家試験の必修問題に挑戦', style: Theme.of(context).textTheme.titleMedium?.copyWith(color: colorScheme.onSurfaceVariant)),
+                const SizedBox(height: 32),
+                Card(
+                  margin: EdgeInsets.zero,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 26),
+                    child: Column(
+                      children: [
+                        _ExamInfoRow(label: '出題数', value: '50問', icon: Icons.description_outlined),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 22),
+                          child: Divider(height: 1, color: colorScheme.outlineVariant),
+                        ),
+                        const _ExamInfoRow(label: '合格ライン', value: '80%以上', detail: '40 / 50問 正解', icon: Icons.check_circle_outline_rounded),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 28),
+                SizedBox(
+                  width: double.infinity,
+                  height: 58,
+                  child: FilledButton.icon(
+                    onPressed: canStart
+                        ? () {
+                            final examQuestions = selectRequiredExamQuestions(questions);
+                            Navigator.of(context).push(MaterialPageRoute<void>(
+                              builder: (_) => RequiredExamScreen(questions: examQuestions),
+                            ));
+                          }
+                        : null,
+                    icon: const Icon(Icons.play_arrow_rounded),
+                    label: const Text('必修問題を開始', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
+                  ),
+                ),
+                if (!canStart) ...[
+                  const SizedBox(height: 14),
+                  Text('試験を開始するには必修問題が50問以上必要です。\n現在は$availableCount問登録されています。', textAlign: TextAlign.center, style: TextStyle(color: colorScheme.error)),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ExamInfoRow extends StatelessWidget {
+  const _ExamInfoRow({required this.label, required this.value, required this.icon, this.detail});
+  final String label;
+  final String value;
+  final String? detail;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) => Row(children: [
+    Icon(icon, color: Theme.of(context).colorScheme.primary, size: 28),
+    const SizedBox(width: 16),
+    Expanded(child: Text(label, style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700))),
+    Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+      Text(value, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900)),
+      if (detail != null) ...[const SizedBox(height: 3), Text(detail!, style: Theme.of(context).textTheme.bodyMedium)],
+    ]),
+  ]);
 }
 
 class _RequiredError extends StatelessWidget {
