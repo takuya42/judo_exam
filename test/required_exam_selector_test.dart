@@ -18,10 +18,17 @@ void main() {
         isRequired: required,
       );
 
-  List<Question> completePool({int questionsPerSubject = 12}) => [
+  List<Question> completePool({
+    int questionsPerSubject = 12,
+    bool required = true,
+  }) => [
         for (final category in requiredExamSubjectCounts.keys)
           for (var index = 0; index < questionsPerSubject; index++)
-            question(category.index * 100 + index, category),
+            question(
+              category.index * 100 + index,
+              category,
+              required: required,
+            ),
       ];
 
   test('科目別の指定数で50問を重複なしに抽出する', () {
@@ -41,14 +48,22 @@ void main() {
     }
   });
 
-  test('通常問題と未指定科目は抽出対象にしない', () {
+  test('専用シート由来ならisRequiredがfalseでも抽出対象にする', () {
+    final selected = selectRequiredExamQuestions(
+      completePool(required: false),
+      random: Random(2),
+    );
+
+    expect(selected, hasLength(requiredExamQuestionCount));
+    expect(selected.every((item) => item.isRequired == false), isTrue);
+  });
+
+  test('指定されていない科目は抽出対象にしない', () {
     final pool = completePool()
-      ..add(question(9998, QuestionCategory.anatomy, required: false))
       ..add(question(9999, QuestionCategory.unknownRequired));
 
-    final selected = selectRequiredExamQuestions(pool, random: Random(2));
+    final selected = selectRequiredExamQuestions(pool, random: Random(20));
 
-    expect(selected.any((item) => item.id == '9998'), isFalse);
     expect(selected.any((item) => item.id == '9999'), isFalse);
   });
 

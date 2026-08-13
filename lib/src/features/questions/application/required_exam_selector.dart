@@ -21,12 +21,14 @@ const Map<QuestionCategory, int> requiredExamSubjectCounts = {
   QuestionCategory.relatedLaws: 4,
 };
 
-/// Returns subjects that do not yet contain enough unique required questions.
+/// Returns subjects that do not yet contain enough unique questions.
+///
+/// [questions] must be the contents of the dedicated required-question sheet.
 Map<QuestionCategory, int> requiredExamQuestionShortages(
   List<Question> questions,
 ) {
   final availableIds = <QuestionCategory, Set<String>>{};
-  for (final question in questions.where((question) => question.isRequired)) {
+  for (final question in questions) {
     availableIds
         .putIfAbsent(question.category, () => <String>{})
         .add(question.storageId);
@@ -41,16 +43,17 @@ Map<QuestionCategory, int> requiredExamQuestionShortages(
 
 /// Selects the prescribed number of questions from each required-exam subject.
 ///
-/// Only questions marked as required are eligible. Duplicate storage IDs are
-/// removed before sampling, then the complete 50-question exam is shuffled so
-/// subjects do not appear in blocks.
+/// [questions] must come from the dedicated required-question sheet; the
+/// `isRequired` model field is deliberately not used as an extraction
+/// condition. Duplicate storage IDs are removed before sampling, then the
+/// complete 50-question exam is shuffled so subjects do not appear in blocks.
 List<Question> selectRequiredExamQuestions(
   List<Question> questions, {
   Random? random,
 }) {
   final rng = random ?? Random();
   final uniqueQuestions = <String, Question>{};
-  for (final question in questions.where((question) => question.isRequired)) {
+  for (final question in questions) {
     uniqueQuestions.putIfAbsent(question.storageId, () => question);
   }
 
