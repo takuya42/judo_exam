@@ -24,6 +24,7 @@ dependencies:
   in_app_purchase: ^3.3.0
   package_info_plus: ^8.1.2
   url_launcher: ^6.3.2
+  unicons: ^2.1.2
 
 dev_dependencies:
   flutter_test:

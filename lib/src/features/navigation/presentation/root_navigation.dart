@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:unicons/unicons.dart';
 
 import '../../auth/application/auth_providers.dart';
 import '../../auth/presentation/auth_dialogs.dart';
@@ -61,8 +62,8 @@ class RootNavigation extends ConsumerWidget {
               label: '問題',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.quiz_outlined),
-              activeIcon: Icon(Icons.quiz),
+              icon: Icon(UniconsLine.clipboard_notes),
+              activeIcon: Icon(UniconsLine.clipboard_notes),
               label: '必修問題',
             ),
             BottomNavigationBarItem(
