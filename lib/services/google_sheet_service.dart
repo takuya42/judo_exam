@@ -75,7 +75,10 @@ class GoogleSheetService {
       // earlier sheet must not prevent later sheets (notably public health)
       // from being requested, while Future.wait still reports any failure to
       // the provider rather than displaying incomplete data.
-      final questions = (await Future.wait(loads)).expand((items) => items);
+      final questions = (await Future.wait(loads))
+          .expand((items) => items)
+          .toList(growable: false);
+      debugPrint('[NormalQuestions] 総取得件数: ${questions.length}');
       return List<Question>.unmodifiable(questions);
     } on GoogleSheetException {
       rethrow;
@@ -127,7 +130,9 @@ class GoogleSheetService {
 
   Future<List<Question>> loadRequiredQuestions() async {
     final csv = await fetchRequiredQuestionsCsv();
-    return parseRequiredQuestionsCsv(csv);
+    final questions = parseRequiredQuestionsCsv(csv);
+    debugPrint('[RequiredQuestions] 取得件数: ${questions.length}');
+    return questions;
   }
 
   /// Parses the required-question CSV using the existing [Question] model.
@@ -315,7 +320,9 @@ class GoogleSheetService {
       );
     }
 
-    return parsePublicHealthQuestionsCsv(body);
+    final questions = parsePublicHealthQuestionsCsv(body);
+    debugPrint('[NormalQuestions] 公衆衛生学取得件数: ${questions.length}');
+    return questions;
   }
 
   /// Parses the dedicated 9-column public-health CSV.
