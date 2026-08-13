@@ -20,13 +20,13 @@ class SettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final colorScheme = Theme.of(context).colorScheme;
     final isPremium = ref.watch(isPremiumProvider);
-    final premiumProduct = isPremium
+    final localizedPrice = isPremium
         ? null
-        : ref.watch(premiumControllerProvider).product;
+        : ref.watch(premiumControllerProvider).localizedPrice;
     final premiumSubtitle = isPremium
         ? 'プレミアム利用中\n回答数無制限'
         : [
-            if (premiumProduct != null) premiumProduct.price,
+            if (localizedPrice != null) localizedPrice,
             '回答数無制限ですべての問題を学習',
           ].join('\n');
 
