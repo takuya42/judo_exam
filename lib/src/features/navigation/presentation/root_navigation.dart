@@ -30,9 +30,7 @@ class _RootNavigationState extends ConsumerState<RootNavigation> {
   ];
 
   final _barKey = GlobalKey<ConvexAppBarState>();
-  final _homeIconKey = GlobalKey<_HomeTabIconState>();
   var _barIndex = NavigationTab.home;
-  var _homeTapInProgress = false;
 
   void _syncBarTo(int index) {
     if (_barIndex == index) return;
@@ -42,7 +40,7 @@ class _RootNavigationState extends ConsumerState<RootNavigation> {
     });
   }
 
-  Future<void> _selectTab(int index) async {
+  void _selectTab(int index) {
     final selectedIndex = ref.read(selectedTabIndexProvider);
     final requiresLogin =
         index == NavigationTab.requiredQuestions ||
@@ -59,16 +57,6 @@ class _RootNavigationState extends ConsumerState<RootNavigation> {
     // ConvexAppBar already animates its own selection. Remembering the index
     // prevents the provider listener from starting that animation a second time.
     _barIndex = index;
-    if (index == NavigationTab.home) {
-      if (_homeTapInProgress) return;
-      _homeTapInProgress = true;
-      final pressAnimation =
-          _homeIconKey.currentState?.press() ??
-          Future<void>.delayed(const Duration(milliseconds: 180));
-      await pressAnimation;
-      _homeTapInProgress = false;
-      if (!mounted) return;
-    }
     ref.read(selectedTabIndexProvider.notifier).select(index);
   }
 
@@ -116,195 +104,36 @@ class _RootNavigationState extends ConsumerState<RootNavigation> {
           top: false,
           child: ConvexAppBar(
             key: _barKey,
-            style: TabStyle.fixedCircle,
+            style: TabStyle.reactCircle,
             initialActiveIndex: selectedIndex,
             elevation: 0,
-            height: 62,
-            curveSize: 82,
-            top: -18,
+            height: 60,
+            curveSize: 52,
+            top: -12,
             backgroundColor: barColor,
             activeColor: activeColor,
             color: inactiveColor,
             onTap: _selectTab,
-            items: [
+            items: const [
               TabItem(
-                icon: _AnimatedTabIcon(
-                  icon: UniconsLine.clipboard_notes,
-                  selected: selectedIndex == NavigationTab.requiredQuestions,
-                  activeColor: activeColor,
-                  inactiveColor: inactiveColor,
-                ),
+                icon: UniconsLine.clipboard_notes,
                 title: '必修問題',
               ),
               TabItem(
-                icon: _AnimatedTabIcon(
-                  icon: Icons.public_outlined,
-                  selected: selectedIndex == NavigationTab.questions,
-                  activeColor: activeColor,
-                  inactiveColor: inactiveColor,
-                ),
+                icon: Icons.public_outlined,
                 title: '問題',
               ),
+              TabItem(icon: Icons.home_rounded, title: 'ホーム'),
               TabItem(
-                icon: _HomeTabIcon(
-                  key: _homeIconKey,
-                  color: selectedIndex == NavigationTab.home
-                      ? activeColor
-                      : inactiveColor,
-                ),
-                title: 'ホーム',
-              ),
-              TabItem(
-                icon: _AnimatedTabIcon(
-                  icon: Icons.star_outline_rounded,
-                  selected: selectedIndex == NavigationTab.favorites,
-                  activeColor: activeColor,
-                  inactiveColor: inactiveColor,
-                ),
+                icon: Icons.star_outline_rounded,
                 title: 'お気に入り',
               ),
               TabItem(
-                icon: _AnimatedTabIcon(
-                  icon: Icons.settings_outlined,
-                  selected: selectedIndex == NavigationTab.settings,
-                  activeColor: activeColor,
-                  inactiveColor: inactiveColor,
-                ),
+                icon: Icons.settings_outlined,
                 title: '設定',
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _AnimatedTabIcon extends StatefulWidget {
-  const _AnimatedTabIcon({
-    required this.icon,
-    required this.selected,
-    required this.activeColor,
-    required this.inactiveColor,
-  });
-
-  final IconData icon;
-  final bool selected;
-  final Color activeColor;
-  final Color inactiveColor;
-
-  @override
-  State<_AnimatedTabIcon> createState() => _AnimatedTabIconState();
-}
-
-class _AnimatedTabIconState extends State<_AnimatedTabIcon>
-    with SingleTickerProviderStateMixin {
-  static const _duration = Duration(milliseconds: 260);
-  late final AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: _duration,
-      value: widget.selected ? 1 : 0,
-    );
-  }
-
-  @override
-  void didUpdateWidget(covariant _AnimatedTabIcon oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.selected && !oldWidget.selected) {
-      _controller.forward(from: 0);
-    }
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return TweenAnimationBuilder<Color?>(
-      tween: ColorTween(
-        end: widget.selected ? widget.activeColor : widget.inactiveColor,
-      ),
-      duration: const Duration(milliseconds: 220),
-      curve: Curves.easeOut,
-      builder: (context, color, child) => AnimatedBuilder(
-        animation: _controller,
-        builder: (context, child) {
-          final progress = Curves.easeOutBack.transform(_controller.value);
-          final scale = TweenSequence<double>([
-            TweenSequenceItem(
-              tween: Tween<double>(begin: 0.95, end: 1.10),
-              weight: 62,
-            ),
-            TweenSequenceItem(
-              tween: Tween<double>(begin: 1.10, end: 1.0),
-              weight: 38,
-            ),
-          ]).transform(_controller.value);
-          return Transform.translate(
-            offset: Offset(0, widget.selected ? 3 * (1 - progress) : 0),
-            child: Transform.scale(
-              scale: widget.selected ? scale : 1,
-              child: Icon(widget.icon, color: color),
-            ),
-          );
-        },
-      ),
-    );
-  }
-}
-
-class _HomeTabIcon extends StatefulWidget {
-  const _HomeTabIcon({super.key, required this.color});
-
-  final Color color;
-
-  @override
-  State<_HomeTabIcon> createState() => _HomeTabIconState();
-}
-
-class _HomeTabIconState extends State<_HomeTabIcon>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 180),
-  );
-
-  Future<void> press() => _controller.forward(from: 0);
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final scale = TweenSequence<double>([
-      TweenSequenceItem(
-        tween: Tween<double>(begin: 1.0, end: 0.92),
-        weight: 45,
-      ),
-      TweenSequenceItem(
-        tween: Tween<double>(begin: 0.92, end: 1.0),
-        weight: 55,
-      ),
-    ]).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
-    return ScaleTransition(
-      scale: scale,
-      child: AnimatedSwitcher(
-        duration: const Duration(milliseconds: 220),
-        child: Icon(
-          Icons.home_rounded,
-          key: ValueKey(widget.color),
-          color: widget.color,
         ),
       ),
     );
