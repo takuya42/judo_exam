@@ -1,4 +1,8 @@
+import 'dart:convert';
+import 'dart:math';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:crypto/crypto.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -63,11 +67,14 @@ class AuthController {
   Future<AuthSession> signInWithApple() async {
     debugPrint('[AuthController] Apple sign-in started');
     try {
+      final rawNonce = _generateNonce();
+      final hashedNonce = sha256.convert(utf8.encode(rawNonce)).toString();
       final appleCredential = await apple.SignInWithApple.getAppleIDCredential(
         scopes: [
           apple.AppleIDAuthorizationScopes.email,
           apple.AppleIDAuthorizationScopes.fullName,
         ],
+        nonce: hashedNonce,
       );
       final identityToken = appleCredential.identityToken;
       if (identityToken == null || identityToken.isEmpty) {
@@ -76,6 +83,7 @@ class AuthController {
       final credential = OAuthProvider('apple.com').credential(
         idToken: identityToken,
         accessToken: appleCredential.authorizationCode,
+        rawNonce: rawNonce,
       );
       final userCredential = await auth.signInWithCredential(credential);
       final displayName = _appleDisplayName(appleCredential);
@@ -98,6 +106,12 @@ class AuthController {
       debugPrint('[AuthController] FirebaseException during Apple sign-in: plugin=${error.plugin} code=${error.code} message=${error.message}');
       Error.throwWithStackTrace(AuthFailure.fromFirestore(error), stackTrace);
     }
+  }
+
+  String _generateNonce() {
+    final random = Random.secure();
+    final bytes = List<int>.generate(32, (_) => random.nextInt(256));
+    return base64Url.encode(bytes).replaceAll('=', '');
   }
 
   String? _appleDisplayName(apple.AuthorizationCredentialAppleID credential) {
