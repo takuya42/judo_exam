@@ -26,6 +26,7 @@ dependencies:
   package_info_plus: ^8.1.2
   url_launcher: ^6.3.2
   unicons: ^2.1.2
+  convex_bottom_bar: ^3.2.0
 
 dev_dependencies:
   flutter_test:

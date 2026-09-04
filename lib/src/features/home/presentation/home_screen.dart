@@ -612,7 +612,9 @@ class _LearningMenu extends ConsumerWidget {
               showLoginRequiredDialog(context, ref);
               return;
             }
-            ref.read(selectedTabIndexProvider.notifier).select(2);
+            ref
+                .read(selectedTabIndexProvider.notifier)
+                .select(NavigationTab.requiredQuestions);
           },
         ),
         _MenuTile(
@@ -624,7 +626,9 @@ class _LearningMenu extends ConsumerWidget {
               showLoginRequiredDialog(context, ref);
               return;
             }
-            ref.read(selectedTabIndexProvider.notifier).select(3);
+            ref
+                .read(selectedTabIndexProvider.notifier)
+                .select(NavigationTab.favorites);
           },
         ),
       ],
