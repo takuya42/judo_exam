@@ -1,5 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart' as apple;
 
 import '../../premium/presentation/premium_screen.dart';
 import '../application/auth_providers.dart';
@@ -26,6 +28,27 @@ Future<void> showLoginRequiredDialog(BuildContext context, WidgetRef ref) {
           icon: const Icon(Icons.g_mobiledata_rounded),
           label: const Text('Googleログイン'),
         ),
+        if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS)
+          SizedBox(
+            width: 240,
+            child: apple.SignInWithAppleButton(
+              onPressed: () async {
+                try {
+                  await ref.read(authControllerProvider).signInWithApple();
+                  if (dialogContext.mounted) {
+                    Navigator.of(dialogContext).pop();
+                  }
+                } on AuthCanceledException {
+                  // A cancellation is an intentional exit from the Apple sheet.
+                } on Exception catch (error) {
+                  if (!context.mounted) return;
+                  _showAuthError(context, error);
+                }
+              },
+              style: apple.SignInWithAppleButtonStyle.black,
+              text: 'Appleでログイン',
+            ),
+          ),
         TextButton.icon(
           onPressed: () {
             Navigator.of(dialogContext).pop();

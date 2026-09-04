@@ -196,24 +196,25 @@ class _AccountSection extends ConsumerWidget {
             title: 'メールアドレスでログイン',
             onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const EmailLoginScreen())),
           ),
-          _SettingsTile(
-            icon: Icons.apple,
-            title: 'Appleでログイン',
-            onTap: () async {
-              try {
-                await ref.read(authControllerProvider).signInWithApple();
-              } on Exception catch (error) {
-                if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      error is AuthFailure ? error.message : error.toString(),
+          if (!kIsWeb && defaultTargetPlatform == TargetPlatform.iOS)
+            _SettingsTile(
+              icon: Icons.apple,
+              title: 'Appleでログイン',
+              onTap: () async {
+                try {
+                  await ref.read(authControllerProvider).signInWithApple();
+                } on Exception catch (error) {
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        error is AuthFailure ? error.message : error.toString(),
+                      ),
                     ),
-                  ),
-                );
-              }
-            },
-          ),
+                  );
+                }
+              },
+            ),
         ],
       );
     }
