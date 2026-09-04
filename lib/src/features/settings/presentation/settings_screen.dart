@@ -158,7 +158,7 @@ class SettingsScreen extends ConsumerWidget {
     if (confirmed != true || !context.mounted) return;
 
     await ref.read(learningDataControllerProvider.notifier).resetLearningData();
-    ref.read(selectedTabIndexProvider.notifier).select(0);
+    ref.read(selectedTabIndexProvider.notifier).select(NavigationTab.home);
     if (!context.mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -261,7 +261,7 @@ class _AccountSection extends ConsumerWidget {
     if (confirmed != true) return;
     await ref.read(learningDataControllerProvider.notifier).resetLearningData();
     await ref.read(authControllerProvider).deleteAccount();
-    ref.read(selectedTabIndexProvider.notifier).select(0);
+    ref.read(selectedTabIndexProvider.notifier).select(NavigationTab.home);
   }
 }
 
