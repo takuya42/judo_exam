@@ -9,7 +9,7 @@ class ForceUpdateService {
     : _remoteConfig = remoteConfig ?? FirebaseRemoteConfig.instance;
 
   static const String minimumVersionKey = 'minimum_version';
-  static const String appStoreUrl = 'https://apps.apple.com/jp/app/id1599151456';
+  static const String appStoreUrl = 'https://apps.apple.com/jp/app/id6784397145';
 
   final FirebaseRemoteConfig _remoteConfig;
 
